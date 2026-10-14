@@ -1,0 +1,62 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test
+        id: build
+        run: |
+          set -o pipefail
+          chmod +x ./gradlew
+          ./gradlew build --stacktrace --no-daemon 2>&1 | tee build.log
+
+      - name: Upload jar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatesflipper-${{ github.sha }}
+          path: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+
+      # Publishes the build log (and the jar when it built) to the `ci-results` branch, so the
+      # result can be read with plain git. Only for pushes to main.
+      - name: Publish result to ci-results branch
+        if: always() && github.event_name != 'pull_request'
+        env:
+          GH_PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/ci
+          cp build.log /tmp/ci/build.log 2>/dev/null || echo "no build log" > /tmp/ci/build.log
+          for f in build/libs/*.jar; do
+            case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" /tmp/ci/ ;; esac
+          done
+          echo "result=${{ steps.build.outcome }}" > /tmp/ci/RESULT
+          echo "sha=${GITHUB_SHA}" >> /tmp/ci/RESULT
+          echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> /tmp/ci/RESULT
+          cd /tmp/ci
+          git init -q -b ci-results
+          git config user.name "fates-flipper-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A
+          git commit -qm "CI result for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-results
