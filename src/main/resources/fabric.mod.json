@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "fatesflipper",
+	"version": "${version}",
+	"name": "Fates Flipper",
+	"description": "Hypixel SkyBlock flips from Fates Viewer in chat, one-key auction opening, price tooltips and a cleaner auction window. Display only: it never clicks or buys for you.",
+	"authors": ["Fate"],
+	"contact": {
+		"sources": "https://github.com/DontTemptFate/Fates_Flipper",
+		"issues": "https://github.com/DontTemptFate/Fates_Flipper/issues"
+	},
+	"license": "GPL-3.0-only",
+	"icon": "assets/fatesflipper/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["io.github.donttemptfate.fatesflipper.FatesFlipperClient"]
+	},
+	"mixins": ["fatesflipper.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

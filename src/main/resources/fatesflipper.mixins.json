@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "io.github.donttemptfate.fatesflipper.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"AbstractContainerScreenAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

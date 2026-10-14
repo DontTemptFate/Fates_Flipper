@@ -24,5 +24,5 @@ desktop.ini
 
 # Local secrets and logs
 *.log
-config/fates-mod.json
+config/fatesflipper.json
 .env
