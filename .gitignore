@@ -1,0 +1,28 @@
+# Gradle / Fabric Loom
+.gradle/
+build/
+out/
+run/
+remappedSrc/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local secrets and logs
+*.log
+config/fates-mod.json
+.env
