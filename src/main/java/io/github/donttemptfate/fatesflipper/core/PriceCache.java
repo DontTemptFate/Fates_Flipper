@@ -19,7 +19,12 @@ import java.util.function.LongSupplier;
 public final class PriceCache {
 	public enum State { LOADING, FOUND, NOT_FOUND, FAILED }
 
-	public record Entry(State state, JsonObject data, String message, long atMs) {}
+	/** {@code httpCode}: the viewer's answer code (0 = no answer), e.g. to spot an older viewer. */
+	public record Entry(State state, JsonObject data, String message, long atMs, int httpCode) {
+		Entry(State state, JsonObject data, String message, long atMs) {
+			this(state, data, message, atMs, 0);
+		}
+	}
 
 	static final long TTL_MS = 60_000;
 	static final long FAIL_TTL_MS = 15_000;
@@ -41,11 +46,16 @@ public final class PriceCache {
 		this.limiter = new Timing.RateLimiter(perSecond, Math.max(1, perSecond * 2), clock.getAsLong());
 	}
 
+	/** Looks up {@code key} with the default request (the constructor's {@code fetch}). */
+	public Entry get(String key) {
+		return get(key, () -> fetch.apply(key));
+	}
+
 	/**
-	 * Returns what's known for {@code key} right now and starts a lookup if needed. Returns
+	 * Returns what's known for {@code key} right now and starts {@code request} if needed. Returns
 	 * {@code null} when nothing is known and the rate limit says wait.
 	 */
-	public synchronized Entry get(String key) {
+	public synchronized Entry get(String key, java.util.function.Supplier<CompletableFuture<ViewerApi.Result>> request) {
 		long now = clock.getAsLong();
 		Entry e = map.get(key);
 		if (e != null) {
@@ -61,7 +71,11 @@ public final class PriceCache {
 		map.put(key, loading);
 		CompletableFuture<ViewerApi.Result> f;
 		try {
-			f = fetch.apply(key);
+			f = request.get();
+			if (f == null) {
+				map.put(key, new Entry(State.FAILED, null, "nothing to send", now));
+				return map.get(key);
+			}
 		} catch (RuntimeException ex) {
 			map.put(key, new Entry(State.FAILED, null, "error", now));
 			return map.get(key);
@@ -78,7 +92,7 @@ public final class PriceCache {
 			boolean found = Json.bool(r.json(), "found", false);
 			map.put(key, new Entry(found ? State.FOUND : State.NOT_FOUND, r.json(), null, now));
 		} else {
-			map.put(key, new Entry(State.FAILED, null, r.message(), now));
+			map.put(key, new Entry(State.FAILED, null, r.message(), now, r.httpCode()));
 		}
 	}
 

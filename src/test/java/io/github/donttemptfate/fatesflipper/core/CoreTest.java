@@ -226,6 +226,18 @@ public class CoreTest {
 	}
 
 	@Test
+	public void priceCachePerRequestAndCodes() {
+		AtomicLong now = new AtomicLong(0);
+		PriceCache cache = new PriceCache(k -> { throw new AssertionError("default fetch must not run"); }, now::get, 4);
+		PriceCache.Entry e = cache.get("b:x", () -> CompletableFuture.completedFuture(
+				new ViewerApi.Result(ViewerApi.Status.ERROR, 405, null, "no", 0)));
+		assertEquals(PriceCache.State.FAILED, e.state());
+		assertEquals(405, e.httpCode());
+		PriceCache.Entry n = cache.get("b:y", () -> null);
+		assertEquals(PriceCache.State.FAILED, n.state());
+	}
+
+	@Test
 	public void priceCacheRateLimit() {
 		AtomicLong now = new AtomicLong(0);
 		AtomicInteger calls = new AtomicInteger();

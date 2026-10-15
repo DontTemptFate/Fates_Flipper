@@ -108,6 +108,18 @@ public final class ViewerApi {
 		return get("/mod/price?item_uuid=" + id);
 	}
 
+	/**
+	 * Price for an item sent whole, in the API's {@code item_bytes} layout (for items that never
+	 * traded or have no uuid; collector §3.4). Older viewers answer 404 / 405.
+	 */
+	public CompletableFuture<Result> priceByItemBytes(String itemBytesBase64) {
+		if (itemBytesBase64 == null || itemBytesBase64.isEmpty() || itemBytesBase64.length() > 200_000)
+			return done(Status.ERROR, 0, null, "item too large", 0);
+		JsonObject body = new JsonObject();
+		body.addProperty("item_bytes", itemBytesBase64);
+		return post("/mod/price", body);
+	}
+
 	/** Price (incl. recent sales) for an auction. */
 	public CompletableFuture<Result> priceByAuction(String auctionId) {
 		if (!AuctionIds.isValid(auctionId)) return done(Status.ERROR, 0, null, "bad auction id", 0);

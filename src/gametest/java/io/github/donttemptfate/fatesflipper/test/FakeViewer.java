@@ -17,6 +17,14 @@ final class FakeViewer {
 	static final String NEXT_ID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 	static final String EVIL_ID = "cccccccccccccccccccccccccccccccc";
 	static final String ITEM_UUID = "361de2df-1769-4052-9795-fb21a1d0f344";
+	/** Has a uuid but never traded: the mod must then send the whole item. */
+	static final String NEVER_UUID = "11111111-2222-3333-4444-555555555555";
+	/** Too few sales: the viewer answers learning + a rough value. */
+	static final String ROUGH_UUID = "99999999-8888-7777-6666-555555555555";
+
+	/** The last item the mod sent whole (decoded), for the test to inspect. */
+	final java.util.concurrent.atomic.AtomicReference<net.minecraft.nbt.CompoundTag> lastItem = new java.util.concurrent.atomic.AtomicReference<>();
+	final AtomicInteger itemPosts = new AtomicInteger();
 
 	final AtomicInteger unauthorized = new AtomicInteger();
 	final AtomicInteger priceCalls = new AtomicInteger();
@@ -78,6 +86,28 @@ final class FakeViewer {
 			case "/mod/flips" -> stream(ex);
 			case "/mod/price" -> {
 				priceCalls.incrementAndGet();
+				if ("POST".equals(ex.getRequestMethod())) {
+					itemPosts.incrementAndGet();
+					String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+					try {
+						String b64 = com.google.gson.JsonParser.parseString(body).getAsJsonObject().get("item_bytes").getAsString();
+						byte[] gz = java.util.Base64.getDecoder().decode(b64);
+						lastItem.set(net.minecraft.nbt.NbtIo.readCompressed(new java.io.ByteArrayInputStream(gz), net.minecraft.nbt.NbtAccounter.unlimitedHeap()));
+					} catch (Exception e) {
+						json(ex, 400, "{\"error\":\"bad item_bytes: " + e.getClass().getSimpleName() + "\"}");
+						return;
+					}
+					json(ex, 200, "{\"found\":true,\"by\":\"item_bytes\",\"confidence\":\"MEDIUM\",\"learning\":false,\"market\":77000000,\"cautious\":70000000,\"lowest_bin\":79000000,\"volume_per_day\":2.0,\"sales_used\":6,\"dupe\":null}");
+					return;
+				}
+				if (query.contains(NEVER_UUID.replace("-", ""))) {
+					json(ex, 200, "{\"found\":false,\"reason\":\"never traded\",\"collector_since\":0}");
+					return;
+				}
+				if (query.contains(ROUGH_UUID.replace("-", ""))) {
+					json(ex, 200, "{\"found\":true,\"confidence\":\"LEARNING\",\"learning\":true,\"rough\":{\"price\":5000000,\"confidence\":\"ROUGH\",\"display_only\":true}}");
+					return;
+				}
 				json(ex, 200, "{\"found\":true,\"by\":\"" + (query.startsWith("auction") ? "auction" : "item_uuid") + "\",\"item_id\":\"HYPERION\",\"name\":\"Heroic Hyperion\","
 						+ "\"confidence\":\"HIGH\",\"learning\":false,\"market\":1250000000,\"resale\":1240000000,\"cautious\":1190000000,"
 						+ "\"volume_per_day\":4.5,\"sales_used\":23,\"lowest_bin\":1230000000,\"listed_now\":7,\"last_traded_at\":" + (System.currentTimeMillis() - 3_600_000)
