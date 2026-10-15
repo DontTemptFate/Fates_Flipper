@@ -50,11 +50,11 @@ public final class Alerts {
 		}
 		if (!Double.isNaN(f.expectedProfit())) line(c, "Expected profit", Coins.format(f.expectedProfit()), ChatFormatting.GREEN);
 		if (!Double.isNaN(f.chance())) line(c, "Chance to hit target", Coins.percent(f.chance()), ChatFormatting.AQUA);
-		String conf = f.confidence() == null ? "?" : f.confidence();
+		String conf = f.confidence() == null ? "?" : LegacyText.strip(f.confidence());
 		String sales = f.salesUsed() > 0 ? ", " + f.salesUsed() + " sales" : "";
 		String vol = Double.isNaN(f.volumePerDay()) ? "" : String.format(Locale.ROOT, ", %.1f/day", f.volumePerDay());
 		line(c, "Confidence", conf + sales + vol, ChatFormatting.WHITE);
-		if (f.dupe() != null) line(c, "Dupe check", f.dupe().toUpperCase(Locale.ROOT), ChatFormatting.RED);
+		if (f.dupe() != null) line(c, "Dupe check", LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT), ChatFormatting.RED);
 		if (f.firstSeenAt() > 0) line(c, "Listed", Coins.age(System.currentTimeMillis() - f.firstSeenAt()) + " ago", ChatFormatting.GRAY);
 		c.append(Component.literal("Click to open the auction").withStyle(ChatFormatting.GOLD));
 		return c;

@@ -53,16 +53,22 @@ public record FlipEvent(
 				Json.num(card, "safe_pct", Double.NaN),
 				Json.num(est, "resale", Double.NaN),
 				Json.num(card, "safe_resale", Double.NaN),
-				Json.str(est, "confidence"),
+				clean(Json.str(est, "confidence")),
 				Json.num(est, "volume_per_day", Double.NaN),
 				(int) Json.num(exact, "n_used", 0),
-				Json.str(card, "dupe"),
+				clean(Json.str(card, "dupe")),
 				Json.lng(card, "first_seen_at", 0),
 				Json.num(score, "exp", Double.NaN),
 				Json.num(score, "chance", Double.NaN),
 				Json.str(flip, "chat"),
 				matches,
 				Json.str(profile, "name"));
+	}
+
+	private static String clean(String s) {
+		if (s == null) return null;
+		String t = LegacyText.strip(s);
+		return t.length() > 24 ? t.substring(0, 24) : t;
 	}
 
 	/** A plain chat line for when the viewer sent no formatted {@code chat} text. */

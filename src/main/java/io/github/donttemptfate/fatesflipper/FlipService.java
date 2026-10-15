@@ -91,8 +91,10 @@ public final class FlipService implements FlipStream.Listener {
 			announcedConnected = false;
 			profileName = null;
 			chatSettings = null;
+			stream.restart();
+		} else if (prev.alerts != next.alerts || prev.onlyOnHypixel != next.onlyOnHypixel) {
+			stream.poke(); // start or stop the stream; display toggles don't touch the connection
 		}
-		stream.restart();
 	}
 
 	public ViewerApi api() {
@@ -262,6 +264,10 @@ public final class FlipService implements FlipStream.Listener {
 			return false;
 		}
 		if (mc.player == null) return false;
+		if (!onHypixel && config.onlyOnHypixel) {
+			Chat.warn("Not on Hypixel: auctions only open there.");
+			return false;
+		}
 		if (!commandCooldown.tryAcquire(System.currentTimeMillis())) {
 			Chat.warn("Slow down: one auction every half second.");
 			return false;
@@ -290,6 +296,10 @@ public final class FlipService implements FlipStream.Listener {
 	public void openNext(String mode) {
 		if (!config.isReady()) {
 			Chat.error(api.target().problem());
+			return;
+		}
+		if (!active()) {
+			Chat.warn("Not on Hypixel: flips only open there.");
 			return;
 		}
 		if (lookupInFlight) return; // a press while the last one is still looking does nothing

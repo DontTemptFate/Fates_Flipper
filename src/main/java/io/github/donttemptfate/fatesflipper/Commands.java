@@ -136,7 +136,7 @@ public final class Commands {
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();
-				row("Viewer", "v" + Json.str(j, "version") + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
+				row("Viewer", "v" + io.github.donttemptfate.fatesflipper.core.LegacyText.strip(String.valueOf(Json.str(j, "version"))) + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
 						+ (Json.hasBool(j, "live_feed") ? ", live feed " + (Json.bool(j, "live_feed", false) ? "on" : "off") : ""));
 			} else {
 				row("Viewer", r.message());
@@ -197,12 +197,13 @@ public final class Commands {
 				String name = Json.str(p, "name");
 				if (name == null) continue;
 				boolean isActive = active != null && active.equals(p.get("id"));
-				String safeName = name.replaceAll("[^A-Za-z0-9 _\\-]", "");
+				long pid = (long) Json.num(p, "id", -1);
 				MutableComponent line = Component.literal((isActive ? "  ▶ " : "    ") + io.github.donttemptfate.fatesflipper.core.LegacyText.strip(name))
 						.withStyle(isActive ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
-				if (!safeName.isBlank()) {
-					line.withStyle(st -> st.withClickEvent(new ClickEvent.RunCommand("/ff profile " + safeName))
-							.withHoverEvent(new HoverEvent.ShowText(Component.literal("Switch to " + safeName))));
+				if (pid >= 0) {
+					String label = io.github.donttemptfate.fatesflipper.core.LegacyText.strip(name);
+					line.withStyle(st -> st.withClickEvent(new ClickEvent.RunCommand("/ff profile " + pid))
+							.withHoverEvent(new HoverEvent.ShowText(Component.literal("Switch to " + label))));
 				}
 				Chat.send(line);
 			}

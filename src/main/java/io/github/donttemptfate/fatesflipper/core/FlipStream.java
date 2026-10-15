@@ -223,7 +223,7 @@ public final class FlipStream {
 		SseParser parser = new SseParser();
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(resp.body(), StandardCharsets.UTF_8))) {
 			String line;
-			while (running && gen == generation && allowed.getAsBoolean() && (line = reader.readLine()) != null) {
+			while (running && gen == generation && allowed.getAsBoolean() && (line = readLine(reader)) != null) {
 				lastActivityMs = System.currentTimeMillis();
 				SseParser.Event ev = parser.feed(line);
 				if (ev != null) dispatch(ev);
@@ -236,6 +236,27 @@ public final class FlipStream {
 		if (gen != generation || !allowed.getAsBoolean()) return new Outcome(Kind.RESTART, "");
 		long lasted = System.currentTimeMillis() - start;
 		return lasted >= STABLE_AFTER_MS ? new Outcome(Kind.STABLE_END, "") : new Outcome(Kind.FAILED, "Connection dropped.");
+	}
+
+	/** Longest line accepted from the stream; a longer one ends the connection. */
+	static final int MAX_LINE_CHARS = 1024 * 1024;
+
+	/** Like readLine, but refuses endless lines (no newline) instead of using up memory. */
+	static String readLine(BufferedReader r) throws java.io.IOException {
+		StringBuilder sb = new StringBuilder();
+		int c;
+		while ((c = r.read()) != -1) {
+			if (c == '\n') return sb.toString();
+			if (c == '\r') {
+				r.mark(1);
+				int n = r.read();
+				if (n != '\n' && n != -1) r.reset();
+				return sb.toString();
+			}
+			if (sb.length() >= MAX_LINE_CHARS) throw new java.io.IOException("line too long");
+			sb.append((char) c);
+		}
+		return sb.length() > 0 ? sb.toString() : null;
 	}
 
 	private void dispatch(SseParser.Event ev) {
