@@ -16,8 +16,12 @@ import java.util.function.Function;
 /** Settings: server address, mod token and toggles. Opened with /ff config or its key. */
 public final class ConfigScreen extends Screen {
 	public static final String CURSOR_ASSIST_RISK =
-			"Cursor assist moves your cursor onto Buy, then Confirm, once, for auctions you open from a flip. "
-					+ "It never clicks. Hypixel doesn't certify mods: use it at your own risk.";
+			"Cursor assist moves the cursor onto Buy, then Confirm, once per auction you open from a flip. "
+					+ "It never clicks. Hypixel doesn't certify mods: use at your own risk.";
+
+	/** Layout: everything fits in 232 scaled pixels (480p at GUI scale 2), centred when taller. */
+	private static final int W = 310;
+	private static final int H = 232;
 
 	private final Screen parent;
 	private final FlipService service;
@@ -34,43 +38,45 @@ public final class ConfigScreen extends Screen {
 		this.draft = service.config().copy();
 	}
 
+	private int top() {
+		return Math.max(0, (this.height - H) / 2);
+	}
+
 	@Override
 	protected void init() {
-		int w = 310;
-		int x = (this.width - w) / 2;
-		int y = 36;
+		int x = (this.width - W) / 2;
+		int t = top();
 
-		server = new EditBox(this.font, x, y + 10, w, 18, Component.literal("Server address"));
+		server = new EditBox(this.font, x, t + 28, W, 16, Component.literal("Server address"));
 		server.setMaxLength(200);
 		server.setValue(draft.serverUrl);
 		server.setHint(Component.literal("https://your-viewer-address"));
 		addRenderableWidget(server);
-		y += 36;
 
-		token = new EditBox(this.font, x, y + 10, w, 18, Component.literal("Mod token"));
+		token = new EditBox(this.font, x, t + 58, W, 16, Component.literal("Mod token"));
 		token.setMaxLength(300);
 		token.setValue(draft.token);
 		token.setHint(Component.literal("fv_… (web page → account menu → Mod tokens)"));
 		addRenderableWidget(token);
-		y += 40;
 
-		int half = (w - 6) / 2;
+		int half = (W - 6) / 2;
+		int y = t + 80;
 		toggle(x, y, half, "Flip alerts", c -> c.alerts, (c) -> c.alerts = !c.alerts);
 		toggle(x + half + 6, y, half, "Alert sound", c -> c.sound, (c) -> c.sound = !c.sound);
-		y += 24;
+		y += 22;
 		toggle(x, y, half, "Price tooltips", c -> c.tooltips, (c) -> c.tooltips = !c.tooltips);
 		toggle(x + half + 6, y, half, "Auction overlay", c -> c.auctionOverlay, (c) -> c.auctionOverlay = !c.auctionOverlay);
-		y += 24;
+		y += 22;
 		toggle(x, y, half, "Status display", c -> c.hudStatus, (c) -> c.hudStatus = !c.hudStatus);
 		toggle(x + half + 6, y, half, "Only on Hypixel", c -> c.onlyOnHypixel, (c) -> c.onlyOnHypixel = !c.onlyOnHypixel);
-		y += 24;
-		toggle(x, y, w, "Cursor assist (opt-in, see below)", c -> c.cursorAssist, (c) -> c.cursorAssist = !c.cursorAssist);
-		y += 50;
+		y += 22;
+		toggle(x, y, W, "Cursor assist (opt-in, see below)", c -> c.cursorAssist, (c) -> c.cursorAssist = !c.cursorAssist);
 
-		int third = (w - 12) / 3;
-		addRenderableWidget(Button.builder(Component.literal("Test connection"), b -> test()).bounds(x, y, third, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(x + third + 6, y, third, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose()).bounds(x + 2 * (third + 6), y, third, 20).build());
+		int third = (W - 12) / 3;
+		int by = t + H - 20;
+		addRenderableWidget(Button.builder(Component.literal("Test connection"), b -> test()).bounds(x, by, third, 20).build());
+		addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(x + third + 6, by, third, 20).build());
+		addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose()).bounds(x + 2 * (third + 6), by, third, 20).build());
 	}
 
 	private void toggle(int x, int y, int w, String label, Function<ModConfig, Boolean> get, Consumer<ModConfig> flip) {
@@ -136,22 +142,24 @@ public final class ConfigScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(g, mouseX, mouseY, delta);
-		int w = 310;
-		int x = (this.width - w) / 2;
-		g.centeredText(this.font, this.title, this.width / 2, 14, 0xFFFFC23D);
-		g.text(this.font, "Server address", x, 36, 0xFFCCCCCC, true);
-		g.text(this.font, "Mod token (kept only in config/fatesflipper.json)", x, 72, 0xFFCCCCCC, true);
-		int riskY = 36 + 36 + 40 + 24 * 3 + 22;
-		int ty = riskY;
-		for (String part : wrap(CURSOR_ASSIST_RISK, w)) {
-			g.text(this.font, part, x, ty, 0xFFFFAA33, false);
-			ty += this.font.lineHeight + 1;
-		}
-		if (!message.isEmpty()) {
-			int my = riskY + 50 + 26;
-			for (String part : wrap(message, w)) {
-				g.text(this.font, part, x, my, messageColor, true);
-				my += this.font.lineHeight + 1;
+		int x = (this.width - W) / 2;
+		int t = top();
+		g.centeredText(this.font, this.title, this.width / 2, t + 4, 0xFFFFC23D);
+		g.text(this.font, "Server address", x, t + 18, 0xFFCCCCCC, true);
+		g.text(this.font, "Mod token (kept only in config/fatesflipper.json)", x, t + 48, 0xFFCCCCCC, true);
+		int ty = t + 170;
+		int lines = 0;
+		if (message.isEmpty()) {
+			for (String part : wrap(CURSOR_ASSIST_RISK, W)) {
+				if (lines++ >= 3) break;
+				g.text(this.font, part, x, ty, 0xFFFFAA33, false);
+				ty += this.font.lineHeight + 1;
+			}
+		} else {
+			for (String part : wrap(message, W)) {
+				if (lines++ >= 3) break;
+				g.text(this.font, part, x, ty, messageColor, true);
+				ty += this.font.lineHeight + 1;
 			}
 		}
 	}

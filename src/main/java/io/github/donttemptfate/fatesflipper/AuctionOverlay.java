@@ -163,32 +163,33 @@ public final class AuctionOverlay {
 		FlipEvent f = state.opened.flip();
 		lines.add(new Line("Fates Flipper", GOLD));
 		if (f != null) {
-			lines.add(new Line(cut(LegacyText.strip(f.name()), 30), 0xFFFFFFFF));
-			lines.add(new Line("Price  " + Coins.format(f.price()), 0xFFFFFF77));
-			if (!Double.isNaN(f.resale())) lines.add(new Line("Est. resale  " + Coins.format(f.resale()), 0xFFFFFF77));
+			lines.add(new Line(LegacyText.strip(f.name()), 0xFFFFFFFF));
+			lines.add(new Line("Price " + Coins.format(f.price()), 0xFFFFFF77));
+			if (!Double.isNaN(f.resale())) lines.add(new Line("Resale " + Coins.format(f.resale()), 0xFFFFFF77));
 			if (!Double.isNaN(f.safeProfit())) {
-				String pct = Double.isNaN(f.safePct()) ? "" : "  (" + Coins.percent(f.safePct()) + ")";
-				lines.add(new Line("Cautious profit  " + (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct,
+				String pct = Double.isNaN(f.safePct()) ? "" : " (" + Coins.percent(f.safePct()) + ")";
+				lines.add(new Line("Profit " + (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct,
 						f.safeProfit() >= 0 ? GREEN : 0xFFFF5555));
 			}
-			String conf = (f.confidence() == null ? "?" : f.confidence()) + (f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : "");
-			lines.add(new Line("Confidence  " + conf, 0xFFCCCCCC));
-			if (!Double.isNaN(f.volumePerDay())) lines.add(new Line(String.format(Locale.ROOT, "Sells  %.1f / day", f.volumePerDay()), 0xFFCCCCCC));
+			lines.add(new Line((f.confidence() == null ? "?" : f.confidence()) + (f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : ""), 0xFFCCCCCC));
+			StringBuilder meta = new StringBuilder();
+			if (!Double.isNaN(f.volumePerDay())) meta.append(String.format(Locale.ROOT, "%.1f/day", f.volumePerDay()));
+			if (f.firstSeenAt() > 0) meta.append(meta.length() > 0 ? " · " : "").append(Coins.age(System.currentTimeMillis() - f.firstSeenAt()));
+			if (meta.length() > 0) lines.add(new Line(meta.toString(), 0xFFAAAAAA));
 			if (f.dupe() != null) lines.add(new Line("DUPE: " + f.dupe().toUpperCase(Locale.ROOT), 0xFFFF5555));
-			if (f.firstSeenAt() > 0) lines.add(new Line("Listed  " + Coins.age(System.currentTimeMillis() - f.firstSeenAt()) + " ago", 0xFFAAAAAA));
 		}
 		JsonObject price = service.lastOpenedPrice();
 		JsonArray sales = Json.arr(price, "recent_sales");
 		if (sales != null && !sales.isEmpty()) {
-			lines.add(new Line("Recent sales (this exact item)", 0xFFAAAAAA));
+			lines.add(new Line("Recent sales", 0xFFAAAAAA));
 			int shown = 0;
 			for (JsonElement e : sales) {
-				if (shown >= 5 || !e.isJsonObject()) break;
+				if (shown >= 4 || !e.isJsonObject()) break;
 				JsonObject s = e.getAsJsonObject();
 				double p = Json.num(s, "price", Double.NaN);
 				long ts = Json.lng(s, "ts", 0);
 				boolean ignored = Json.bool(s, "ignored", false);
-				String t = "  " + Coins.format(p) + (ts > 0 ? "  " + Coins.age(System.currentTimeMillis() - ts) + " ago" : "") + (ignored ? "  (ignored)" : "");
+				String t = " " + Coins.format(p) + (ts > 0 ? " · " + Coins.age(System.currentTimeMillis() - ts) : "") + (ignored ? " ×" : "");
 				lines.add(new Line(t, ignored ? 0xFF777777 : 0xFFDDDDDD));
 				shown++;
 			}
@@ -196,31 +197,48 @@ public final class AuctionOverlay {
 			lines.add(new Line("Loading…", 0xFF777777));
 		}
 		if (state.kind == Kind.AUCTION_VIEW) {
-			String btn = target == null ? "waiting for the Buy button…" : name(target.getItem());
-			lines.add(new Line("Button: " + cut(btn, 26), target == null ? 0xFFAAAAAA : GREEN));
+			lines.add(target == null ? new Line("Waiting for Buy…", 0xFFAAAAAA) : new Line(name(target.getItem()), GREEN));
 		} else {
-			lines.add(new Line(target == null ? "Waiting for Confirm…" : "Click Confirm to buy", GREEN));
+			lines.add(new Line(target == null ? "Waiting for Confirm…" : "Click Confirm", GREEN));
 		}
 
-		int pad = 4;
+		// Never cover the window: use the wider free side, and shorten lines to fit it.
+		int pad = 3;
+		int spaceRight = screen.width - (left + imageWidth) - 6;
+		int spaceLeft = left - 6;
+		boolean right = spaceRight >= spaceLeft;
+		int avail = Math.max(0, (right ? spaceRight : spaceLeft) - 2);
+		int maxText = avail - pad * 2;
+		if (maxText < 40) return; // no room at all beside the window: show nothing rather than cover it
 		int w = 0;
-		for (Line l : lines) w = Math.max(w, font.width(l.text()));
+		List<Line> fitted = new ArrayList<>(lines.size());
+		for (Line l : lines) {
+			String t = fit(font, l.text(), maxText);
+			fitted.add(new Line(t, l.color()));
+			w = Math.max(w, font.width(t));
+		}
 		w += pad * 2;
-		int h = lines.size() * (font.lineHeight + 1) + pad * 2;
-		int x = left + imageWidth + 6;
-		if (x + w > screen.width - 2) x = Math.max(2, left - w - 6);
-		int y = Math.max(2, top);
+		int lineH = font.lineHeight + 1;
+		int maxLines = Math.max(1, (screen.height - 4 - pad * 2) / lineH);
+		if (fitted.size() > maxLines) fitted = fitted.subList(0, maxLines);
+		int h = fitted.size() * lineH + pad * 2;
+		int x = right ? left + imageWidth + 4 : left - 4 - w;
+		int y = Math.max(2, Math.min(top, screen.height - h - 2));
 		g.fill(x, y, x + w, y + h, 0xD0101018);
 		g.outline(x, y, w, h, 0xFF3A3A55);
 		int ty = y + pad;
-		for (Line l : lines) {
+		for (Line l : fitted) {
 			g.text(font, l.text(), x + pad, ty, l.color(), true);
-			ty += font.lineHeight + 1;
+			ty += lineH;
 		}
 	}
 
-	private static String cut(String s, int max) {
-		return s.length() <= max ? s : s.substring(0, max - 1) + "…";
+	/** Shortens text with "…" until it fits {@code maxWidth} pixels. */
+	static String fit(Font font, String text, int maxWidth) {
+		if (font.width(text) <= maxWidth) return text;
+		String t = text;
+		while (t.length() > 1 && font.width(t + "…") > maxWidth) t = t.substring(0, t.length() - 1);
+		return t + "…";
 	}
 
 	// ---- cursor assist -----------------------------------------------------------------------
