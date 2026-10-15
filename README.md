@@ -10,14 +10,15 @@ your own two clicks.
 
 ## Requirements
 
-- Minecraft **26.2** with **Fabric Loader** 0.19.3 or newer
-- **Fabric API** for 26.2
+- Minecraft **26.2** or **26.3** with **Fabric Loader** 0.19.3 or newer (one jar per version)
+- **Fabric API** for the same version
 - A Fates Viewer account and a **mod token** (web page → account menu → Mod tokens)
 
 ## Install
 
-1. Install Fabric Loader for 26.2 (Fabric installer, or a launcher like Prism / Modrinth App).
-2. Put `fatesflipper-<version>+mc26.2.jar` and Fabric API into the game's `mods` folder.
+1. Install Fabric Loader for your version (Fabric installer, or a launcher like Prism / Modrinth App).
+2. Put the jar for your Minecraft version (`fatesflipper-<version>+mc26.2.jar` or `…+mc26.3.jar`)
+   and Fabric API into the game's `mods` folder.
 3. Start the game, join Hypixel, type `/ff config`, fill in the viewer address and your mod token,
    press **Test connection**, then **Save**.
 4. Bind the keys in Options → Controls → Key Binds → *Fates Flipper* (unbound by default).
@@ -52,12 +53,16 @@ your own two clicks.
 ## Build
 
 ```
-./gradlew build                 # jar in build/libs
-./gradlew runClientGametest     # in-game smoke test (starts a real client)
+./gradlew build -Pmc=26.2                 # jar in build/libs (or -Pmc=26.3)
+./gradlew runClientGametest -Pmc=26.2     # in-game smoke test (starts a real client)
 ```
 
-Needs JDK 25. Every push to `main` is built and tested by GitHub Actions; the jar is attached to the
-run and the build log, game-test log and screenshots are published to the `ci-results` branch.
+Version-specific numbers are in `versions/<mc>.properties`; the little version-specific code
+(26.3 uses SDL3 instead of GLFW) is in `src/mc<mc>/java`.
+
+Needs JDK 25. Every push to `main` is built and tested for both versions by GitHub Actions; the jars
+are attached to the run, and per version the build log, game-test log, screenshots and jar are
+published to the `ci-results` branch.
 
 ## Licence
 
