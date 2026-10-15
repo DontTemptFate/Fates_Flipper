@@ -11,6 +11,9 @@ versionFile.withInputStream { versionProps.load(it) }
 versionProps.each { k, v -> project.ext.set(k as String, v as String) }
 
 version = "${project.version}+mc${project.minecraft_version}"
+
+// Version-specific code (window/input library calls) lives in src/mc<version>/java.
+sourceSets.main.java.srcDir "src/mc${mcTarget}/java"
 group = project.group
 
 base {

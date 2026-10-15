@@ -16,7 +16,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
+import io.github.donttemptfate.fatesflipper.compat.Compat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -300,7 +300,7 @@ public final class AuctionOverlay {
 		var window = mc.getWindow();
 		double sx = (double) window.getScreenWidth() / window.getGuiScaledWidth();
 		double sy = (double) window.getScreenHeight() / window.getGuiScaledHeight();
-		GLFW.glfwSetCursorPos(window.handle(), guiX * sx, guiY * sy);
+		Compat.setCursor(mc, guiX * sx, guiY * sy);
 		state.cursorDone = true;
 	}
 }

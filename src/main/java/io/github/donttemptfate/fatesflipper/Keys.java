@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import io.github.donttemptfate.fatesflipper.compat.Compat;
 
 /**
  * Key bindings (Options → Controls → Key Binds → Fates Flipper). All unbound by default so they
@@ -21,9 +21,9 @@ public final class Keys {
 	public static KeyMapping openSettings;
 
 	public static void register() {
-		openBest = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.fatesflipper.open_best", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-		openSafest = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.fatesflipper.open_safest", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-		openSettings = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.fatesflipper.settings", GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+		openBest = KeyMappingHelper.registerKeyMapping(Compat.unboundKey("key.fatesflipper.open_best", CATEGORY));
+		openSafest = KeyMappingHelper.registerKeyMapping(Compat.unboundKey("key.fatesflipper.open_safest", CATEGORY));
+		openSettings = KeyMappingHelper.registerKeyMapping(Compat.unboundKey("key.fatesflipper.settings", CATEGORY));
 	}
 
 	/**
