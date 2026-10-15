@@ -26,3 +26,6 @@ desktop.ini
 *.log
 config/fatesflipper.json
 .env
+
+# Local copies of built jars (not tracked)
+release/
