@@ -7,19 +7,23 @@ import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.PriceCache;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Price lines on item tooltips, from the viewer's {@code /mod/price?item_uuid=} (viewer contract
- * §4.3). Only items with a SkyBlock item uuid; answers are cached (see {@link PriceCache}).
+ * Price lines on item tooltips (viewer contract §4.3), cached (see {@link PriceCache}):
+ * <ol>
+ *   <li>items with a SkyBlock uuid: {@code GET /mod/price?item_uuid=} (works for anything that
+ *       traded since tracking started);</li>
+ *   <li>items that never traded, or have no uuid: the whole item in the API's {@code item_bytes}
+ *       layout, {@code POST /mod/price} (see {@link ItemBytes}). Viewers that don't accept that yet
+ *       answer 404 / 405; then the mod stops asking for 10 minutes and shows the old text.</li>
+ * </ol>
  */
 public final class PriceTooltips {
 	private PriceTooltips() {}
@@ -34,32 +38,77 @@ public final class PriceTooltips {
 		});
 	}
 
-	static String itemUuid(ItemStack stack) {
-		if (stack == null || stack.isEmpty()) return null;
-		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-		if (data == null) return null;
-		CompoundTag tag = data.copyTag();
-		return AuctionIds.normalize(tag.getStringOr("uuid", ""));
-	}
+	/** Set when the viewer doesn't accept whole items yet (404 / 405); retried after 10 minutes. */
+	private static volatile long bytesUnsupportedUntilMs;
+	static final long UNSUPPORTED_RETRY_MS = 10 * 60_000;
 
 	static void add(FlipService service, ItemStack stack, List<Component> lines) {
 		if (!service.config().tooltips || !service.active()) return;
-		String uuid = itemUuid(stack);
-		if (uuid == null) return;
-		PriceCache.Entry e = service.itemPrices().get(uuid);
-		if (e == null) return;
-		JsonObject d = e.data();
-		switch (e.state()) {
-			case LOADING -> {
-				if (d == null) lines.add(gray("Fates: loading price…"));
-				else addFound(d, lines);
+		CompoundTag data = ItemBytes.skyblockData(stack);
+		if (data == null) return; // not a SkyBlock item
+		String uuid = AuctionIds.normalize(data.getStringOr("uuid", ""));
+		PriceCache prices = service.itemPrices();
+
+		PriceCache.Entry byUuid = null;
+		if (uuid != null) {
+			byUuid = prices.get("u:" + uuid, () -> service.api().priceByItem(uuid));
+			if (byUuid == null) return;
+			if (byUuid.state() == PriceCache.State.FOUND || (byUuid.state() == PriceCache.State.LOADING && byUuid.data() != null)) {
+				addFound(byUuid.data(), lines);
+				return;
 			}
-			case FOUND -> addFound(d, lines);
-			case NOT_FOUND -> lines.add(gray("Fates: not traded on the AH since tracking started"));
-			case FAILED -> {
-				// stay quiet; /ff status shows connection problems
+			if (byUuid.state() == PriceCache.State.LOADING) {
+				lines.add(gray("Fates: loading price…"));
+				return;
+			}
+			if (byUuid.state() == PriceCache.State.FAILED) return; // /ff status shows connection problems
+		}
+
+		// Never traded (or no uuid): ask with the whole item, if the viewer supports it.
+		boolean bytesOk = System.currentTimeMillis() >= bytesUnsupportedUntilMs;
+		if (bytesOk) {
+			String key = uuid != null ? "b:" + uuid : ItemBytes.cacheKey(stack, data);
+			// built only when a lookup actually starts (on this thread, before the method returns)
+			PriceCache.Entry byItem = prices.get(key, () -> service.api().priceByItemBytes(ItemBytes.build(stack)));
+			if (byItem != null) {
+				switch (byItem.state()) {
+					case FOUND -> {
+						addFound(byItem.data(), lines);
+						return;
+					}
+					case LOADING -> {
+						if (byItem.data() != null) addFound(byItem.data(), lines);
+						else lines.add(gray("Fates: loading price…"));
+						return;
+					}
+					case NOT_FOUND -> {
+						if (addRough(byItem.data(), lines)) return;
+						lines.add(gray("Fates: no sales of this exact item yet"));
+						return;
+					}
+					case FAILED -> {
+						if (byItem.httpCode() == 404 || byItem.httpCode() == 405) {
+							bytesUnsupportedUntilMs = System.currentTimeMillis() + UNSUPPORTED_RETRY_MS;
+						}
+					}
+				}
 			}
 		}
+		if (byUuid != null && byUuid.state() == PriceCache.State.NOT_FOUND) {
+			if (addRough(byUuid.data(), lines)) return;
+			lines.add(gray("Fates: not traded on the AH since tracking started"));
+		}
+	}
+
+	/** Viewer v0.20.0+: a rough, display-only value for items without enough exact sales. */
+	static boolean addRough(JsonObject d, List<Component> lines) {
+		JsonObject rough = Json.obj(d, "rough");
+		double price = Json.num(rough, "price", Double.NaN);
+		if (Double.isNaN(price)) return false;
+		lines.add(Component.literal("Fates ").withStyle(ChatFormatting.GOLD)
+				.append(Component.literal("rough value ~" + Coins.format(price)).withStyle(ChatFormatting.GRAY))
+				.append(Component.literal(" (estimate, not a flip)").withStyle(ChatFormatting.DARK_GRAY)));
+		return true;
 	}
 
 	private static void addFound(JsonObject d, List<Component> lines) {
@@ -72,6 +121,7 @@ public final class PriceTooltips {
 		double vol = Json.num(d, "volume_per_day", Double.NaN);
 		int used = (int) Json.num(d, "sales_used", 0);
 
+		if ((learning || Double.isNaN(market)) && addRough(d, lines)) return;
 		MutableComponent head = Component.literal("Fates ").withStyle(ChatFormatting.GOLD);
 		if (learning || Double.isNaN(market)) {
 			head.append(Component.literal("MIXED".equals(conf) ? "prices split, no estimate" : "learning (too few sales)").withStyle(ChatFormatting.DARK_GRAY));

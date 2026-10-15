@@ -81,6 +81,28 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			FatesFlipperClient.LOG.info("[gametest] tooltip: {}", lines);
 			check(String.join("\n", lines).contains("1.25B"), "tooltip didn't show the price: " + lines);
 
+			// 2b. never-traded item: sent whole in the API's item_bytes layout (collector §3.4)
+			ItemStack never = skyblockItem("HYPERION", FakeViewer.NEVER_UUID, "Pristine Hyperion");
+			ctx.runOnClient(mc -> tooltip(mc, never));
+			ctx.waitFor(mc -> String.join("\n", tooltip(mc, never)).contains("77M"), 400);
+			net.minecraft.nbt.CompoundTag sent = fake.lastItem.get();
+			check(sent != null, "the whole item never reached the viewer");
+			net.minecraft.nbt.CompoundTag item0 = sent.getListOrEmpty("i").getCompoundOrEmpty(0);
+			net.minecraft.nbt.CompoundTag extra = item0.getCompoundOrEmpty("tag").getCompoundOrEmpty("ExtraAttributes");
+			net.minecraft.nbt.CompoundTag display = item0.getCompoundOrEmpty("tag").getCompoundOrEmpty("display");
+			FatesFlipperClient.LOG.info("[gametest] item_bytes sent: {}", sent);
+			check(FakeViewer.NEVER_UUID.equals(extra.getStringOr("uuid", "")), "ExtraAttributes.uuid changed: " + extra);
+			check("HYPERION".equals(extra.getStringOr("id", "")), "ExtraAttributes.id missing: " + extra);
+			check(display.getStringOr("Name", "").contains("§") && display.getStringOr("Name", "").contains("Pristine Hyperion"), "Name not in § form: " + display);
+			var lore = display.getListOrEmpty("Lore");
+			check(lore.size() == 3 && lore.getStringOr(2, "").contains("LEGENDARY SWORD"), "Lore not the item's own lines: " + lore);
+			check(!lore.toString().contains("Fates"), "our own tooltip lines leaked into Lore: " + lore);
+
+			// 2c. too few sales: rough, display-only value
+			ItemStack rough = skyblockItem("SOME_RARE_THING", FakeViewer.ROUGH_UUID, "Rare Thing");
+			ctx.runOnClient(mc -> tooltip(mc, rough));
+			ctx.waitFor(mc -> String.join("\n", tooltip(mc, rough)).contains("rough value ~5M"), 400);
+
 			// 3. open-best: one lookup, one /viewauction
 			ctx.runOnClient(mc -> service.openNext("best"));
 			ctx.waitFor(mc -> service.lastOpened() != null && FakeViewer.NEXT_ID.equals(service.lastOpened().auctionId()), 400);
@@ -158,6 +180,21 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 	private static ItemStack named(net.minecraft.world.item.Item item, String name) {
 		ItemStack s = new ItemStack(item);
 		s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+		return s;
+	}
+
+	private static ItemStack skyblockItem(String id, String uuid, String name) {
+		ItemStack s = new ItemStack(Items.DIAMOND_SWORD);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", id);
+		tag.putString("uuid", uuid);
+		tag.putInt("hot_potato_count", 10);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(net.minecraft.ChatFormatting.GOLD));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(List.of(
+				Component.literal("Damage: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+270").withStyle(net.minecraft.ChatFormatting.RED)),
+				Component.empty(),
+				Component.literal("LEGENDARY SWORD").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD))));
 		return s;
 	}
 
