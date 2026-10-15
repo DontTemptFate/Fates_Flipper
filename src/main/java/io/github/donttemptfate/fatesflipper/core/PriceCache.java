@@ -30,7 +30,7 @@ public final class PriceCache {
 	private final Timing.RateLimiter limiter;
 	private final Map<String, Entry> map = new LinkedHashMap<>(64, 0.75f, true) {
 		@Override
-		protected boolean removeEldestEntry(Map.Entry<String, Entry> eldest) {
+		protected boolean removeEldestEntry(Map.Entry<String, PriceCache.Entry> eldest) {
 			return size() > MAX_ENTRIES;
 		}
 	};
