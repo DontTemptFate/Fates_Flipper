@@ -2,6 +2,14 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+// Load the numbers for the chosen Minecraft version (-Pmc=26.3; default from gradle.properties).
+def mcTarget = project.findProperty("mc") ?: "26.2"
+def versionFile = file("versions/${mcTarget}.properties")
+if (!versionFile.exists()) throw new GradleException("No versions/${mcTarget}.properties")
+def versionProps = new Properties()
+versionFile.withInputStream { versionProps.load(it) }
+versionProps.each { k, v -> project.ext.set(k as String, v as String) }
+
 version = "${project.version}+mc${project.minecraft_version}"
 group = project.group
 
@@ -34,10 +42,12 @@ fabricApi {
 
 processResources {
 	def version = project.version
+	def minecraftDep = project.minecraft_dep
 	inputs.property "version", version
+	inputs.property "minecraftDep", minecraftDep
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand "version": version, "minecraft_dep": minecraftDep
 	}
 }
 

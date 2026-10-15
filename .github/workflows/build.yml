@@ -11,7 +11,12 @@ permissions:
 
 jobs:
   build:
+    name: Minecraft ${{ matrix.mc }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ["26.2", "26.3"]
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +32,7 @@ jobs:
         run: |
           set -o pipefail
           chmod +x ./gradlew
-          ./gradlew build --stacktrace --no-daemon 2>&1 | tee build.log
+          ./gradlew build -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee build.log
 
       - name: In-game smoke test (real Minecraft client)
         id: gametest
@@ -35,38 +40,52 @@ jobs:
         timeout-minutes: 20
         run: |
           set -o pipefail
-          ./gradlew runClientGametest --stacktrace --no-daemon 2>&1 | tee gametest.log
+          ./gradlew runClientGametest -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee gametest.log
 
-      - name: Upload jar
-        if: success()
+      - name: Collect results
+        if: always()
+        run: |
+          out=out/mc${{ matrix.mc }}
+          mkdir -p "$out/screenshots"
+          cp build.log "$out/" 2>/dev/null || echo "no build log" > "$out/build.log"
+          cp gametest.log "$out/" 2>/dev/null || true
+          cp build/run/clientGameTest/screenshots/*.png "$out/screenshots/" 2>/dev/null || true
+          cp build/run/clientGameTest/logs/latest.log "$out/client-latest.log" 2>/dev/null || true
+          for f in build/libs/*.jar; do
+            case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" "$out/" ;; esac
+          done
+          {
+            echo "result=${{ steps.build.outcome }}"
+            echo "gametest=${{ steps.gametest.outcome }}"
+          } > "$out/RESULT"
+
+      - name: Upload results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fatesflipper-${{ github.sha }}
-          path: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+          name: fatesflipper-mc${{ matrix.mc }}
+          path: out/mc${{ matrix.mc }}
 
-      # Publishes the build log (and the jar when it built) to the `ci-results` branch, so the
-      # result can be read with plain git. Only for pushes to main.
-      - name: Publish result to ci-results branch
-        if: always() && github.event_name != 'pull_request'
+  # Publishes every version's jar, logs and screenshots to the `ci-results` branch, so the result
+  # can be read with plain git. Only for pushes to main.
+  publish:
+    needs: build
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/ci
+      - name: Push to ci-results
         env:
           GH_PUSH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p /tmp/ci
-          cp build.log /tmp/ci/build.log 2>/dev/null || echo "no build log" > /tmp/ci/build.log
-          cp gametest.log /tmp/ci/gametest.log 2>/dev/null || true
-          mkdir -p /tmp/ci/screenshots
-          cp build/run/clientGameTest/screenshots/*.png /tmp/ci/screenshots/ 2>/dev/null || true
-          cp build/run/clientGameTest/logs/latest.log /tmp/ci/client-latest.log 2>/dev/null || true
-          for f in build/libs/*.jar; do
-            case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" /tmp/ci/ ;; esac
-          done
-          echo "result=${{ steps.build.outcome }}" > /tmp/ci/RESULT
-          echo "gametest=${{ steps.gametest.outcome }}" >> /tmp/ci/RESULT
-          echo "sha=${GITHUB_SHA}" >> /tmp/ci/RESULT
-          echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> /tmp/ci/RESULT
           cd /tmp/ci
+          {
+            echo "sha=${GITHUB_SHA}"
+            echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            for d in */; do echo "[${d%/}]"; cat "$d/RESULT" 2>/dev/null || echo "result=missing"; done
+          } > RESULT
           git init -q -b ci-results
           git config user.name "fates-flipper-ci"
           git config user.email "ci@users.noreply.github.com"
