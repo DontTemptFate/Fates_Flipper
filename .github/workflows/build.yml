@@ -29,6 +29,14 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build --stacktrace --no-daemon 2>&1 | tee build.log
 
+      - name: In-game smoke test (real Minecraft client)
+        id: gametest
+        if: steps.build.outcome == 'success'
+        timeout-minutes: 20
+        run: |
+          set -o pipefail
+          ./gradlew runClientGametest --stacktrace --no-daemon 2>&1 | tee gametest.log
+
       - name: Upload jar
         if: success()
         uses: actions/upload-artifact@v4
@@ -47,10 +55,15 @@ jobs:
         run: |
           mkdir -p /tmp/ci
           cp build.log /tmp/ci/build.log 2>/dev/null || echo "no build log" > /tmp/ci/build.log
+          cp gametest.log /tmp/ci/gametest.log 2>/dev/null || true
+          mkdir -p /tmp/ci/screenshots
+          cp build/run/clientGameTest/screenshots/*.png /tmp/ci/screenshots/ 2>/dev/null || true
+          cp build/run/clientGameTest/logs/latest.log /tmp/ci/client-latest.log 2>/dev/null || true
           for f in build/libs/*.jar; do
             case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" /tmp/ci/ ;; esac
           done
           echo "result=${{ steps.build.outcome }}" > /tmp/ci/RESULT
+          echo "gametest=${{ steps.gametest.outcome }}" >> /tmp/ci/RESULT
           echo "sha=${GITHUB_SHA}" >> /tmp/ci/RESULT
           echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> /tmp/ci/RESULT
           cd /tmp/ci

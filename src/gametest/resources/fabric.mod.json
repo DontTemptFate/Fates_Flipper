@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "fatesflipper-test",
+	"version": "0.0.0",
+	"name": "Fates Flipper Test",
+	"description": "In-game smoke test for Fates Flipper (CI only).",
+	"license": "GPL-3.0-only",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["io.github.donttemptfate.fatesflipper.test.FatesFlipperGameTest"]
+	},
+	"depends": {
+		"fatesflipper": "*"
+	}
+}

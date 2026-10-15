@@ -22,6 +22,16 @@ dependencies {
 	testImplementation "com.google.code.gson:gson:2.11.0"
 }
 
+fabricApi {
+	// In-game smoke test (src/gametest), run in CI with ./gradlew runClientGametest
+	configureTests {
+		createSourceSet = true
+		modId = "fatesflipper-test"
+		enableGameTests = false
+		eula = true
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
