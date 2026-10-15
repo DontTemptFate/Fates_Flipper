@@ -34,13 +34,24 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee build.log
 
+      # 26.3 renders through SDL3 and needs a real (virtual) display with GL drivers on CI.
+      - name: Virtual display for the game test
+        if: steps.build.outcome == 'success' && matrix.mc != '26.2'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri libegl1 mesa-vulkan-drivers > /dev/null
+
       - name: In-game smoke test (real Minecraft client)
         id: gametest
         if: steps.build.outcome == 'success'
-        timeout-minutes: 20
+        timeout-minutes: 12
         run: |
           set -o pipefail
-          ./gradlew runClientGametest -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee gametest.log
+          if [ "${{ matrix.mc }}" = "26.2" ]; then
+            ./gradlew runClientGametest -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee gametest.log
+          else
+            xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClientGametest -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee gametest.log
+          fi
 
       - name: Collect results
         if: always()
