@@ -5,6 +5,8 @@ import io.github.donttemptfate.fatesflipper.FatesFlipperClient;
 import io.github.donttemptfate.fatesflipper.FlipService;
 import io.github.donttemptfate.fatesflipper.core.FlipStream;
 import io.github.donttemptfate.fatesflipper.core.ModConfig;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -58,6 +60,14 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			check(fake.unauthorized.get() == 0, "requests went out without the token");
 			ctx.takeScreenshot("01_flip_alert");
 
+			// 1b. the /ff commands run without errors
+			for (String cmd : List.of("ff help", "ff status", "ff profiles", "ff recent", "ff open not-an-id")) {
+				ctx.runOnClient(mc -> run(mc, cmd));
+				ctx.waitTicks(10);
+			}
+			ctx.waitTicks(20);
+			ctx.takeScreenshot("01b_commands");
+
 			// 2. price tooltip for an item with a SkyBlock uuid
 			ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
 			CompoundTag tag = new CompoundTag();
@@ -109,6 +119,16 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 				service.applyConfig(c);
 			});
 			fake.stop();
+		}
+	}
+
+	private static void run(Minecraft mc, String command) {
+		var dispatcher = ClientCommands.getActiveDispatcher();
+		check(dispatcher != null, "client commands not registered");
+		try {
+			dispatcher.execute(command, (FabricClientCommandSource) mc.getConnection().getSuggestionsProvider());
+		} catch (Exception e) {
+			throw new AssertionError("/" + command + " failed: " + e, e);
 		}
 	}
 
