@@ -38,12 +38,17 @@ public final class ViewerApi {
 	private volatile long pausedUntilMs;
 
 	public ViewerApi(Supplier<ModConfig> config, String modVersion) {
-		this.config = config;
-		this.userAgent = "FatesFlipper/" + modVersion;
-		this.http = HttpClient.newBuilder()
+		this(config, modVersion, HttpClient.newBuilder()
 				.connectTimeout(Duration.ofSeconds(10))
 				.followRedirects(HttpClient.Redirect.NEVER)
-				.build();
+				.build());
+	}
+
+	/** Shares an existing client (must not follow redirects). */
+	public ViewerApi(Supplier<ModConfig> config, String modVersion, HttpClient http) {
+		this.config = config;
+		this.userAgent = "FatesFlipper/" + modVersion;
+		this.http = http;
 	}
 
 	public HttpClient http() {
@@ -161,14 +166,26 @@ public final class ViewerApi {
 		}
 		if (body == null) b.GET();
 		else b.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8));
-		return http.sendAsync(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
-				.thenApply(this::toResult)
+		return http.sendAsync(b.build(), HttpResponse.BodyHandlers.ofInputStream())
+				.thenApply(r -> toResult(r.statusCode(), r.headers().firstValue("Retry-After").orElse(null), readLimited(r.body())))
 				.exceptionally(ex -> new Result(Status.ERROR, 0, null, "Can't reach the server (" + rootMessage(ex) + ").", 0));
 	}
 
-	private Result toResult(HttpResponse<String> r) {
-		int code = r.statusCode();
-		JsonObject json = Json.parseObject(r.body());
+	/** Largest response body the mod reads (anything bigger is treated as broken). */
+	static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
+
+	static String readLimited(java.io.InputStream in) {
+		try (in) {
+			byte[] data = in.readNBytes(MAX_BODY_BYTES + 1);
+			if (data.length > MAX_BODY_BYTES) return null;
+			return new String(data, StandardCharsets.UTF_8);
+		} catch (java.io.IOException e) {
+			return null;
+		}
+	}
+
+	private Result toResult(int code, String retryAfter, String body) {
+		JsonObject json = body == null ? null : Json.parseObject(body);
 		String err = Json.str(json, "error");
 		return switch (code) {
 			case 200 -> json == null
@@ -178,7 +195,7 @@ public final class ViewerApi {
 			case 403 -> new Result(Status.FORBIDDEN, code, json, forbiddenMessage(json, err), 0);
 			case 404 -> new Result(Status.NOT_FOUND, code, json, err != null ? err : "Not found.", 0);
 			case 429 -> {
-				long ms = retryAfterMs(r);
+				long ms = parseRetryAfter(retryAfter);
 				pauseFor(ms);
 				yield new Result(Status.RATE_LIMITED, code, json, "The server asked to slow down; waiting " + (ms / 1000) + " s.", ms);
 			}

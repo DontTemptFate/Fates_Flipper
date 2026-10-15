@@ -51,6 +51,8 @@ public class CoreTest {
 		assertFalse(ServerAddress.check("https://x.com/?a=b").ok());
 		assertFalse(ServerAddress.check("").ok());
 		assertFalse(ServerAddress.check(null).ok());
+		assertFalse(ServerAddress.check("http://127.0.0.1.:8738").ok());
+		assertFalse(ServerAddress.check("http://100.64.0.1.").ok());
 		assertTrue(ServerAddress.looksLikeToken("fv_abcDEF123_-xyz"));
 		assertFalse(ServerAddress.looksLikeToken("abc"));
 	}
@@ -87,6 +89,25 @@ public class CoreTest {
 		assertNull(p.feed(""));
 		p.feed("data: ok");
 		assertEquals("ok", p.feed("").data());
+	}
+
+	@Test
+	public void boundedReads() throws Exception {
+		java.io.BufferedReader r = new java.io.BufferedReader(new java.io.StringReader("a\r\nb\nc\rd"));
+		assertEquals("a", FlipStream.readLine(r));
+		assertEquals("b", FlipStream.readLine(r));
+		assertEquals("c", FlipStream.readLine(r));
+		assertEquals("d", FlipStream.readLine(r));
+		assertNull(FlipStream.readLine(r));
+		java.io.BufferedReader endless = new java.io.BufferedReader(new java.io.StringReader("x".repeat(FlipStream.MAX_LINE_CHARS + 10)));
+		try {
+			FlipStream.readLine(endless);
+			fail("an endless line must be refused");
+		} catch (java.io.IOException expected) {
+			// ok
+		}
+		assertEquals("{}", ViewerApi.readLimited(new java.io.ByteArrayInputStream("{}".getBytes())));
+		assertNull(ViewerApi.readLimited(new java.io.ByteArrayInputStream(new byte[ViewerApi.MAX_BODY_BYTES + 1])));
 	}
 
 	@Test

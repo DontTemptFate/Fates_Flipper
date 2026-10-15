@@ -58,6 +58,7 @@ public final class ServerAddress {
 		String h = host.toLowerCase(Locale.ROOT);
 		if (h.startsWith("[") && h.endsWith("]")) h = h.substring(1, h.length() - 1);
 		if (h.equals("localhost") || h.equals("::1")) return true;
+		if (h.endsWith(".")) return false;
 		String[] parts = h.split("\\.");
 		if (parts.length != 4) return false;
 		int[] n = new int[4];

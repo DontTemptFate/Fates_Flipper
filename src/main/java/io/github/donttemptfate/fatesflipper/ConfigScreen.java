@@ -123,7 +123,7 @@ public final class ConfigScreen extends Screen {
 			return;
 		}
 		setMessage("Testing…", 0xFFAAAAAA);
-		ViewerApi probe = new ViewerApi(() -> next, "test");
+		ViewerApi probe = new ViewerApi(() -> next, "test", service.api().http());
 		probe.ping().thenAccept(r -> this.minecraft.execute(() -> {
 			if (r.ok()) {
 				String profile = Json.str(Json.obj(r.json(), "profile"), "name");

@@ -54,18 +54,49 @@ public final class AuctionOverlay {
 		}
 	}
 
+	/** Per window: survives a resize (which runs init again on the same screen). */
+	private static final java.util.Map<Screen, State> STATES = new java.util.WeakHashMap<>();
+	/** The opened auction whose auction view / confirm window has already been used. */
+	private static FlipService.Opened viewUsedFor;
+	private static FlipService.Opened confirmUsedFor;
+
 	public static void register(FlipService service) {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?> acs)) return;
-			Kind kind = kindOf(screen);
-			if (kind == null) return;
-			FlipService.Opened opened = service.lastOpened();
-			if (opened == null) return; // only auctions opened from a flip
-			State state = new State(kind, opened, System.currentTimeMillis(), client.mouseHandler.xpos(), client.mouseHandler.ypos());
+			State state = STATES.get(screen);
+			if (state == null) {
+				Kind kind = kindOf(screen);
+				if (kind == null) return;
+				FlipService.Opened opened = service.lastOpened();
+				if (opened == null) return; // only auctions opened from a flip
+				// Attach to exactly one auction view and one confirm window per opened auction, so a
+				// different auction opened by hand afterwards never gets this flip's panel or cursor.
+				if (kind == Kind.AUCTION_VIEW) {
+					if (opened == viewUsedFor) return;
+					viewUsedFor = opened;
+				} else {
+					if (opened != viewUsedFor || opened == confirmUsedFor) return;
+					confirmUsedFor = opened;
+				}
+				state = new State(kind, opened, System.currentTimeMillis(), client.mouseHandler.xpos(), client.mouseHandler.ypos());
+				STATES.put(screen, state);
+			}
+			State st = state;
 			ScreenEvents.afterExtract(screen).register((s, g, mx, my, delta) -> {
-				if (service.config().auctionOverlay) draw(service, acs, state, g, client.font);
+				if (!service.config().auctionOverlay) return;
+				try {
+					draw(service, acs, st, g, client.font);
+				} catch (RuntimeException e) {
+					// drawing must never crash the game
+				}
 			});
-			ScreenEvents.afterTick(screen).register(s -> cursorAssist(service, client, acs, state));
+			ScreenEvents.afterTick(screen).register(s -> {
+				try {
+					cursorAssist(service, client, acs, st);
+				} catch (RuntimeException e) {
+					st.cursorDone = true;
+				}
+			});
 		});
 	}
 

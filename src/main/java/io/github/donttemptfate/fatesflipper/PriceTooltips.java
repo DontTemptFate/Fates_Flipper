@@ -64,6 +64,7 @@ public final class PriceTooltips {
 
 	private static void addFound(JsonObject d, List<Component> lines) {
 		String conf = Json.str(d, "confidence");
+		if (conf != null) conf = io.github.donttemptfate.fatesflipper.core.LegacyText.strip(conf);
 		boolean learning = Json.bool(d, "learning", false);
 		double market = Json.num(d, "market", Double.NaN);
 		double cautious = Json.num(d, "cautious", Double.NaN);
@@ -103,6 +104,7 @@ public final class PriceTooltips {
 
 		JsonObject dupe = Json.obj(d, "dupe");
 		String level = Json.str(dupe, "level");
+		if (level != null) level = io.github.donttemptfate.fatesflipper.core.LegacyText.strip(level);
 		if (level != null) lines.add(Component.literal("  ⚠ dupe check: " + level).withStyle(ChatFormatting.RED));
 
 		long last = Json.lng(d, "last_traded_at", 0);
