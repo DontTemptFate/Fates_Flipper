@@ -65,14 +65,27 @@ public final class Ui {
 			this.size = size;
 		}
 
+		/**
+		 * Small sizes use Minecraft's own pixel font: Chakra Petch is only readable from about 8.5 px
+		 * up (Fate, 2026-10-17: labels and lore were hard to read at normal GUI scales).
+		 */
+		public boolean pixel() {
+			return !chakra() || size < CHAKRA_MIN;
+		}
+
 		/** Height of capitals above the baseline. */
 		public int cap() {
-			return chakra() ? Math.round(size * CAP) : (int) Math.ceil(7 * vanillaScale());
+			return pixel() ? (int) Math.ceil(7 * vanillaScale()) : Math.round(size * CAP);
 		}
 
 		/** Room below the baseline (descenders, shadow). */
 		public int desc() {
-			return chakra() ? Math.max(2, Math.round(size * DESC)) : (int) Math.ceil(2 * vanillaScale());
+			return pixel() ? (int) Math.ceil(2 * vanillaScale()) : Math.max(2, Math.round(size * DESC));
+		}
+
+		/** Bold weights shown with Minecraft's bold when drawn in the pixel font. */
+		boolean boldInPixel() {
+			return this == BODY_BOLD || this == TAG;
 		}
 
 		public int height() {
@@ -85,6 +98,9 @@ public final class Ui {
 		}
 	}
 
+	/** Smallest size drawn in Chakra Petch; smaller text uses Minecraft's font. */
+	static final float CHAKRA_MIN = 8.5f;
+
 	/** Cap height and descender of Chakra Petch as a share of the font size. */
 	static final float CAP = 0.72f;
 	static final float DESC = 0.28f;
@@ -93,7 +109,7 @@ public final class Ui {
 	 * for TrueType fonts (Minecraft's bitmap font: 7 px).
 	 */
 	static float baselineAt(Role r) {
-		return chakra() ? BASELINE_K * r.size + BASELINE_C : 7f * r.vanillaScale();
+		return r.pixel() ? 7f * r.vanillaScale() : BASELINE_K * r.size + BASELINE_C;
 	}
 
 	static float BASELINE_K = 0f;
@@ -117,7 +133,8 @@ public final class Ui {
 	/** Text in one size and colour. */
 	public static MutableComponent t(String text, Role role, int color) {
 		Style s = Style.EMPTY.withColor(color & 0xFFFFFF);
-		if (chakra) s = s.withFont(role.font);
+		if (!role.pixel()) s = s.withFont(role.font);
+		else if (role.boldInPixel()) s = s.withBold(true);
 		return Component.literal(text == null ? "" : text).withStyle(s);
 	}
 
@@ -127,7 +144,7 @@ public final class Ui {
 		c.visit((style, text) -> {
 			if (!text.isEmpty()) {
 				Style s = style;
-				if (chakra) s = s.withFont(role.font);
+				if (!role.pixel()) s = s.withFont(role.font);
 				out.append(Component.literal(text).withStyle(s));
 			}
 			return Optional.empty();
@@ -141,7 +158,7 @@ public final class Ui {
 
 	/** Draws text so its baseline lands at {@code baseline}. */
 	static void draw(GuiGraphicsExtractor g, Component c, Role role, int x, int baseline) {
-		if (!chakra && role.vanillaScale() != 1f) {
+		if (role.pixel() && role.vanillaScale() != 1f) {
 			float s = role.vanillaScale();
 			g.pose().pushMatrix();
 			g.pose().translate(x, baseline - 7 * s);
@@ -156,7 +173,7 @@ public final class Ui {
 	/** Width of text drawn in a role (scaled for the Minecraft font's big numbers). */
 	static int width(Component c, Role role) {
 		int w = font().width(c);
-		return !chakra && role.vanillaScale() != 1f ? Math.round(w * role.vanillaScale()) : w;
+		return role.pixel() && role.vanillaScale() != 1f ? Math.round(w * role.vanillaScale()) : w;
 	}
 
 	// ---- shapes -----------------------------------------------------------------------------------
