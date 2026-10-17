@@ -93,8 +93,8 @@ public final class ConfigScreen extends Screen {
 	}
 
 	private static Component label(String label, boolean on) {
-		return io.github.donttemptfate.fatesflipper.ui.Ui.t(label + ": ", io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL, 0xFFFFFF)
-				.append(io.github.donttemptfate.fatesflipper.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL,
+		return io.github.donttemptfate.fatesflipper.ui.Ui.t(label + ": ", io.github.donttemptfate.fatesflipper.ui.Ui.Role.BODY, 0xFFFFFF)
+				.append(io.github.donttemptfate.fatesflipper.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fatesflipper.ui.Ui.Role.BODY,
 						on ? 0x55FF55 : 0xFF5555));
 	}
 
