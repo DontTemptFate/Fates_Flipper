@@ -34,7 +34,7 @@ public final class ItemCard {
 	static final String[] RARITIES = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "DIVINE", "SPECIAL", "ULTIMATE", "ADMIN"};
 
 	public static Card build(ItemStack stack, PriceTooltips.View view) {
-		Card c = new Card(0.94f, 120, 200).gap(1);
+		Card c = new Card(0.94f, 120, 230).gap(1);
 		Component name = stack.get(DataComponents.CUSTOM_NAME);
 		if (name == null) name = stack.getHoverName();
 		c.add(new Text(noFakeBold(name), Role.NAME, 0, 0));
