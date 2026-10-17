@@ -26,11 +26,16 @@ public final class ItemTooltips {
 		}
 		int w = g.guiWidth();
 		int h = g.guiHeight();
-		int key = System.identityHashCode(stack);
-		if (key != shownKey) {
+		// Hypixel resends items (e.g. every second for an auction's countdown): the same item keeps
+		// its scroll position and never gets narrower while it's hovered
+		String key = stableKey(stack);
+		if (!key.equals(shownKey)) {
 			shownKey = key;
 			offset = 0;
+			widest = 0;
 		}
+		widest = Math.max(widest, card.contentWidth());
+		card.atLeast(widest);
 		((DeferredTooltip) g).fatesflipper$setDeferredTooltip(() -> {
 			try {
 				int ch = card.height();
@@ -55,7 +60,14 @@ public final class ItemTooltips {
 		return true;
 	}
 
-	private static int shownKey;
+	private static String shownKey = "";
+	private static int widest;
+
+	/** Same item → same key, ignoring Hypixel's listing lines (the countdown) and the stack object. */
+	static String stableKey(ItemStack stack) {
+		var data = ItemBytes.skyblockData(stack);
+		return (data == null ? "" : data.getStringOr("uuid", "")) + "|" + ItemBytes.cacheKey(stack, data);
+	}
 	private static volatile int offset;
 	private static volatile int maxOffset;
 	private static volatile long shownAtMs;

@@ -22,6 +22,7 @@ public final class Card {
 	private final int maxW;
 	private int gap = 3;
 	private int pending;
+	private int floor;
 
 	public Card(float alpha, int minW, int maxW) {
 		this.alpha = alpha;
@@ -52,9 +53,15 @@ public final class Card {
 		return rows.isEmpty();
 	}
 
+	/** Never narrower than this content width (keeps a tooltip from resizing while its text changes). */
+	public Card atLeast(int contentW) {
+		this.floor = contentW;
+		return this;
+	}
+
 	/** Content width the card wants (between its min and max). */
 	public int contentWidth() {
-		int w = 0;
+		int w = floor;
 		for (El e : rows) w = Math.max(w, e.prefWidth(maxW));
 		return Math.max(minW, Math.min(maxW, w));
 	}
@@ -596,9 +603,16 @@ public final class Card {
 		final List<Component> keys = new ArrayList<>();
 		final List<MutableComponent> values = new ArrayList<>();
 		final Role role;
+		boolean single;
 
 		public Stats(Role role) {
 			this.role = role;
+		}
+
+		/** Always one column (rows whose values change, like a countdown, then never jump between columns). */
+		public Stats single() {
+			single = true;
+			return this;
 		}
 
 		public Stats add(Component key, Component value) {
@@ -612,7 +626,7 @@ public final class Card {
 		}
 
 		int cols(int w) {
-			if (keys.size() < 2) return 1;
+			if (single || keys.size() < 2) return 1;
 			for (int i = 0; i < keys.size(); i++) if (entryW(i) > (w - 12) / 2) return 1;
 			return 2;
 		}
@@ -621,7 +635,7 @@ public final class Card {
 		public int prefWidth(int max) {
 			int m = 0;
 			for (int i = 0; i < keys.size(); i++) m = Math.max(m, entryW(i));
-			return Math.min(max, keys.size() >= 2 && 2 * m + 12 <= max ? 2 * m + 12 : m);
+			return Math.min(max, !single && keys.size() >= 2 && 2 * m + 12 <= max ? 2 * m + 12 : m);
 		}
 
 		@Override

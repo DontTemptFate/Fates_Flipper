@@ -305,4 +305,41 @@ public class CoreTest {
 		assertNull(AuctionWindow.matches(1e6, "Spooky Hook", -1, ""));
 		assertEquals("heroic hyperion", AuctionWindow.normalize("✪✪ Heroic  Hyperion ✪"));
 	}
+	@Test
+	public void loreListingFooter() {
+		List<String> scroll = List.of("Consume this item to add its", "destination to your Fast Travel", "options.", "",
+				"Requires MVP+ to consume!", "", "Island: Spider's Den", "Teleport: Top of Nest", "", "EPIC TRAVEL SCROLL",
+				"-----------------", "Seller: [MVP+] Invisity_", "Buy it now: 1,000 coins", "", "Ends in: 05h 49m 49s", "",
+				"Click to inspect!");
+		assertEquals(10, LoreParts.listingStart(scroll));
+		// the countdown ticking doesn't change where the item's own lore ends
+		List<String> later = new java.util.ArrayList<>(scroll);
+		later.set(14, "Ends in: 05h 49m 23s");
+		assertEquals(scroll.subList(0, 10), later.subList(0, LoreParts.listingStart(later)));
+		// auctions with bids, no separator: cut at the blank line above "Seller:"
+		assertEquals(1, LoreParts.listingStart(List.of("RARE SWORD", "", "Seller: x", "Starting bid: 5 coins", "Bids: 3 bids")));
+		// ordinary items keep everything, including progress bars and stat lines
+		assertEquals(-1, LoreParts.listingStart(List.of("Damage: +270", "━━━━━━━━━━━━ 42%", "", "LEGENDARY SWORD")));
+		assertEquals(-1, LoreParts.listingStart(List.of()));
+		assertTrue(LoreParts.isSeparator("-----------------"));
+		assertFalse(LoreParts.isSeparator("━━━━━━━━ 42.42%"));
+	}
+
+	@Test
+	public void bazaarProducts() throws Exception {
+		assertTrue(LoreParts.isBazaarProduct(List.of("Common commodity", "", "Buy price: 2.5 coins")));
+		assertTrue(LoreParts.isBazaarProduct(List.of("Buy price: 2.5 coins", "Sell price: 1.2 coins")));
+		assertFalse(LoreParts.isBazaarProduct(List.of("Buy it now: 320 coins", "COMMON")));
+		java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("ffbz");
+		java.nio.file.Path f = dir.resolve("bz.txt");
+		BazaarIds ids = new BazaarIds(f);
+		assertTrue(ids.learn("SEEDS"));
+		assertFalse(ids.learn("SEEDS"));
+		assertFalse(ids.learn("ENCHANTED_BOOK")); // generic id: AH-only books share it
+		assertFalse(ids.learn("bad id; /pay"));
+		ids.saveIfDirty();
+		BazaarIds again = new BazaarIds(f);
+		assertTrue(again.contains("SEEDS"));
+		assertEquals(1, again.size());
+	}
 }

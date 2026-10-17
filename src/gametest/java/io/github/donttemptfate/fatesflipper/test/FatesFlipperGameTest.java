@@ -4,6 +4,9 @@ import io.github.donttemptfate.fatesflipper.AuctionOverlay;
 import io.github.donttemptfate.fatesflipper.ConfigScreen;
 import io.github.donttemptfate.fatesflipper.FatesFlipperClient;
 import io.github.donttemptfate.fatesflipper.FlipService;
+import io.github.donttemptfate.fatesflipper.Keys;
+import io.github.donttemptfate.fatesflipper.PriceTooltips;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.donttemptfate.fatesflipper.core.FlipStream;
 import io.github.donttemptfate.fatesflipper.core.ModConfig;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -137,11 +140,21 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			check(Boolean.TRUE.equals(ctx.computeOnClient(mc -> AuctionOverlay.debugMatch(mc.gui.screen()))),
 					"confirm window of the flip wasn't recognised");
 			ctx.takeScreenshot("03_confirm_overlay");
-			// 4d. pressing the open key again closes the flip's window (like Esc)
+			// 4d. real mouse buttons (26.3 numbers them differently): left / right clicks are always the
+			// player's own and never close the window; the open key bound to a mouse button does
 			ctx.waitTicks(12); // past the half-second key cooldown
-			ctx.runOnClient(mc -> service.closeFlipWindow(mc.gui.screen()));
+			ctx.getInput().setCursorPos(2, 2);
+			ctx.runOnClient(mc -> Keys.openBest.setKey(InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_MIDDLE)));
+			ctx.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+			ctx.waitTicks(3);
+			ctx.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+			ctx.waitTicks(3);
+			check(ctx.computeOnClient(mc -> mc.gui.screen() != null), "a left / right click closed the flip's window");
+			ctx.waitTicks(12);
+			ctx.getInput().pressMouse(InputConstants.MOUSE_BUTTON_MIDDLE);
 			ctx.waitTicks(5);
-			check(ctx.computeOnClient(mc -> mc.gui.screen() == null), "the close key didn't close the flip's window");
+			check(ctx.computeOnClient(mc -> mc.gui.screen() == null), "the open key (on a mouse button) didn't close the flip's window");
+			ctx.runOnClient(mc -> Keys.openBest.setKey(InputConstants.UNKNOWN));
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 
 			// 4e. the Fates look: card gallery (font calibration, flip hover, item tooltips, side panel)
@@ -192,6 +205,51 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.getInput().scroll(-20);
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("07c_long_tooltip_scrolled");
+			ctx.runOnClient(mc -> mc.gui.setScreen(null));
+
+			// 4f2. Auctions Browser: an item without a uuid whose "Ends in" countdown changes every
+			// second is looked up once (Hypixel's listing lines are never sent) and its tooltip holds still
+			SimpleContainer browser = new SimpleContainer(54);
+			browser.setItem(10, listedScroll(0));
+			ctx.runOnClient(mc -> mc.gui.setScreen(new ContainerScreen(ChestMenu.sixRows(0, mc.player.getInventory(), browser),
+					mc.player.getInventory(), Component.literal("Auctions Browser"))));
+			ctx.waitTicks(10);
+			int callsBefore = fake.priceCalls.get();
+			ctx.getInput().setCursorPos(slotPos(ctx, 10)[0], slotPos(ctx, 10)[1]);
+			for (int sec = 1; sec <= 12; sec++) {
+				int t = sec;
+				ctx.runOnClient(mc -> browser.setItem(10, listedScroll(t)));
+				ctx.waitTicks(5);
+				if (sec == 2) ctx.takeScreenshot("09a_listing_tooltip_early");
+			}
+			ctx.takeScreenshot("09b_listing_tooltip_later");
+			int lookups = fake.priceCalls.get() - callsBefore;
+			check(lookups <= 1, "an item with a ticking countdown was looked up " + lookups + " times (expected once)");
+			var sentLore = fake.lastItem.get().getListOrEmpty("i").getCompoundOrEmpty(0).getCompoundOrEmpty("tag")
+					.getCompoundOrEmpty("display").getListOrEmpty("Lore");
+			check(!sentLore.toString().contains("Seller") && !sentLore.toString().contains("Ends in"),
+					"Hypixel's listing lines were sent with the item: " + sentLore);
+			check(sentLore.getStringOr(sentLore.size() - 1, "").contains("EPIC TRAVEL SCROLL"), "rarity isn't the last line sent: " + sentLore);
+
+			// 4f3. Bazaar: a product's menu item says "Bazaar item" (no auction lookup), and the same id
+			// without a uuid elsewhere (e.g. in the inventory) is recognised after the Bazaar was seen
+			SimpleContainer bz = new SimpleContainer(54);
+			bz.setItem(10, bazaarMenuItem());
+			ItemStack plainSeeds = sbItem(Items.WHEAT_SEEDS, "SEEDS", null, "Seeds", 35, "COMMON");
+			bz.setItem(12, plainSeeds);
+			ctx.runOnClient(mc -> mc.gui.setScreen(new ContainerScreen(ChestMenu.sixRows(0, mc.player.getInventory(), bz),
+					mc.player.getInventory(), Component.literal("Farming ➜ Wheat & Seeds"))));
+			ctx.waitTicks(25); // the once-a-second Bazaar scan
+			int bzBefore = fake.priceCalls.get();
+			ctx.getInput().setCursorPos(slotPos(ctx, 10)[0], slotPos(ctx, 10)[1]);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("10a_bazaar_menu_item");
+			ctx.getInput().setCursorPos(slotPos(ctx, 12)[0], slotPos(ctx, 12)[1]);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("10b_bazaar_item_elsewhere");
+			check(ctx.computeOnClient(mc -> PriceTooltips.view(service, plainSeeds).kind() == PriceTooltips.Kind.BAZAAR),
+					"a Bazaar product seen in the Bazaar wasn't recognised elsewhere");
+			check(fake.priceCalls.get() == bzBefore, "Bazaar items were looked up on the auction side");
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 			// 4g. chat: open it and hover the newest alert line (best effort: position depends on the chat layout)
 			ctx.runOnClient(mc -> io.github.donttemptfate.fatesflipper.Alerts.show(service, galleryFlip));
@@ -386,6 +444,55 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 				Component.empty(),
 				Component.literal("LEGENDARY SWORD").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD))));
 		return s;
+	}
+
+	/** Screen position (window pixels) of a slot's centre in the open container screen. */
+	private static double[] slotPos(ClientGameTestContext ctx, int index) {
+		return ctx.computeOnClient(mc -> {
+			var acc = (io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor) mc.gui.screen();
+			var slot = ((ContainerScreen) mc.gui.screen()).getMenu().slots.get(index);
+			double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
+			return new double[] {(acc.fatesflipper$getLeftPos() + slot.x + 8) * scale, (acc.fatesflipper$getTopPos() + slot.y + 8) * scale};
+		});
+	}
+
+	/** A SkyBlock item (uuid may be null) with plain lore lines. */
+	private static ItemStack sbItem(Item item, String id, String uuid, String name, int count, String... lore) {
+		ItemStack s = new ItemStack(item, count);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", id);
+		if (uuid != null) tag.putString("uuid", uuid);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+		List<Component> lines = new java.util.ArrayList<>();
+		for (String l : lore) lines.add(Component.literal(l));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lines));
+		return s;
+	}
+
+	/** A travel scroll as the Auctions Browser shows it: its own lore, then Hypixel's listing lines with a live countdown. */
+	private static ItemStack listedScroll(int secondsGone) {
+		int left = 5 * 3600 + 49 * 60 + 49 - secondsGone;
+		String ends = String.format(java.util.Locale.ROOT, "%02dh %02dm %02ds", left / 3600, left / 60 % 60, left % 60);
+		ItemStack s = sbItem(Items.PAPER, "SPIDER_DEN_TOP_TRAVEL_SCROLL", null, "Travel Scroll to Spider's Den Top of Nest", 1,
+				"Consume this item to add its", "destination to your Fast Travel", "options.", "", "Requires MVP+ to consume!", "",
+				"Island: Spider's Den", "Teleport: Top of Nest", "", "EPIC TRAVEL SCROLL");
+		List<Component> lore = new java.util.ArrayList<>(s.get(DataComponents.LORE).lines());
+		lore.add(Component.literal("-----------------").withStyle(net.minecraft.ChatFormatting.DARK_GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH));
+		lore.add(Component.literal("Seller: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("[MVP+] Invisity_").withStyle(net.minecraft.ChatFormatting.AQUA)));
+		lore.add(Component.literal("Buy it now: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("1,000 coins").withStyle(net.minecraft.ChatFormatting.GOLD)));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Ends in: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal(ends).withStyle(net.minecraft.ChatFormatting.YELLOW)));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Click to inspect!").withStyle(net.minecraft.ChatFormatting.YELLOW));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lore));
+		return s;
+	}
+
+	/** A Bazaar product's menu item (Hypixel's Bazaar window). */
+	private static ItemStack bazaarMenuItem() {
+		return sbItem(Items.WHEAT_SEEDS, "SEEDS", null, "Seeds", 1, "Common commodity", "Buy price: 2.5 coins",
+				"34M in 527 offers", "", "Sell price: 1.2 coins", "4.7M in 73 orders", "", "Click to view details!");
 	}
 
 	private static void check(boolean ok, String message) {
