@@ -327,7 +327,9 @@ public final class Card {
 			for (int i = 0; i < labels.size(); i++) {
 				int cx = x + (i % cols) * (colW + 8);
 				int cy = y + (i / cols) * (rh + 3);
-				Ui.draw(g, Ui.t(labels.get(i), Role.LABEL, Ui.GRAY), Role.LABEL, cx, cy + Role.LABEL.cap());
+				String label = labels.get(i);
+				while (label.length() > 1 && Ui.width(Ui.t(label, Role.LABEL, Ui.GRAY), Role.LABEL) > colW) label = label.substring(0, label.length() - 2) + "…";
+				Ui.draw(g, Ui.t(label, Role.LABEL, Ui.GRAY), Role.LABEL, cx, cy + Role.LABEL.cap());
 				drawSegs(g, values.get(i), cx, cy + Role.LABEL.cap() + 3 + cap(values.get(i)));
 			}
 		}

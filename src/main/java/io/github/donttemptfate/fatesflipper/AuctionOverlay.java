@@ -360,7 +360,9 @@ public final class AuctionOverlay {
 				service.config().cursorAssist, service.config().pressAgainToClose);
 		int spaceRight = screen.width - (left + imageWidth) - 8;
 		int spaceLeft = left - 8;
-		boolean right = spaceRight >= spaceLeft;
+		// Left of the window by default: Hypixel's item tooltips open to the right of the cursor, so a
+		// panel on the right would sit over them (Fate, 2026-10-17). Right only when the left is too small.
+		boolean right = spaceLeft < card.width() * 0.8f && spaceRight > spaceLeft;
 		int avail = right ? spaceRight : spaceLeft;
 		if ((float) avail / card.width() < 0.8f) {
 			card = io.github.donttemptfate.fatesflipper.ui.Cards.auctionPanel(state.opened.flip(), service.lastOpenedPrice(),
