@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "fatesflipper:chakra/ChakraPetch-SemiBold.ttf",
+      "file": "fatesflipper:chakra/chakra_petch_semibold.ttf",
       "shift": [
         0.0,
         0.0
