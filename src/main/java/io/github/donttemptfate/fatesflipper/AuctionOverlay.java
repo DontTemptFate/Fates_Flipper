@@ -181,7 +181,7 @@ public final class AuctionOverlay {
 			state.matchedAtMs = now;
 			viewUsedFor = state.opened;
 		} else {
-			FatesFlipperClient.LOG.info("(Fates Flipper) auction window isn't the opened flip {}; leaving it alone", state.opened.auctionId());
+			FatesFlipperClient.LOG.info("auction window isn't the opened flip {}; leaving it alone", state.opened.auctionId());
 		}
 	}
 
@@ -329,7 +329,7 @@ public final class AuctionOverlay {
 		String close = closeKey ? " · key closes" : "";
 		return switch (bs) {
 			case BUYABLE -> "Buy now";
-			case CANT_AFFORD -> "Can't afford" + close;
+			case CANT_AFFORD -> "Can't afford";
 			case SOLD -> "Sold" + close;
 			case NOT_YET -> "Not buyable yet";
 			case UNKNOWN -> "Button: " + name(button.getItem());
