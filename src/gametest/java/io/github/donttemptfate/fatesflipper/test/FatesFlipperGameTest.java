@@ -166,6 +166,7 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			SimpleContainer chest = new SimpleContainer(27);
 			chest.setItem(10, rich);
 			chest.setItem(12, simple);
+			chest.setItem(14, longItem());
 			ctx.runOnClient(mc -> mc.gui.setScreen(new ContainerScreen(ChestMenu.threeRows(0, mc.player.getInventory(), chest),
 					mc.player.getInventory(), Component.literal("Chest"))));
 			ctx.waitTicks(10);
@@ -178,6 +179,19 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.getInput().setCursorPos(at[0], at[1]);
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("07_item_tooltip_live");
+			// a tooltip taller than the screen: shown full size, scrolled with the mouse wheel
+			double[] at2 = ctx.computeOnClient(mc -> {
+				var acc = (io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor) mc.gui.screen();
+				var slot = ((ContainerScreen) mc.gui.screen()).getMenu().slots.get(14);
+				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
+				return new double[] {(acc.fatesflipper$getLeftPos() + slot.x + 8) * scale, (acc.fatesflipper$getTopPos() + slot.y + 8) * scale};
+			});
+			ctx.getInput().setCursorPos(at2[0], at2[1]);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("07b_long_tooltip_top");
+			ctx.getInput().scroll(-20);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("07c_long_tooltip_scrolled");
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 			// 4g. chat: open it and hover the newest alert line (best effort: position depends on the chat layout)
 			ctx.runOnClient(mc -> io.github.donttemptfate.fatesflipper.Alerts.show(service, galleryFlip));
@@ -305,6 +319,35 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 		lore.add(Component.literal("Right-click to view recipes!").withStyle(net.minecraft.ChatFormatting.YELLOW));
 		lore.add(Component.empty());
 		lore.add(Component.literal("RARE FARMING TOOL").withStyle(net.minecraft.ChatFormatting.BLUE, net.minecraft.ChatFormatting.BOLD));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lore));
+		return s;
+	}
+
+	/** A very long tooltip (many enchants with descriptions), taller than the screen. */
+	private static ItemStack longItem() {
+		ItemStack s = new ItemStack(Items.DIAMOND_SWORD);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", "HYPERION");
+		tag.putString("uuid", FakeViewer.ITEM_UUID);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal("Heroic Hyperion ✪✪✪✪✪").withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+		List<Component> lore = new java.util.ArrayList<>();
+		for (String st : new String[] {"Damage", "Strength", "Crit Damage", "Bonus Attack Speed", "Intelligence", "Ferocity"}) {
+			lore.add(Component.literal(st + ": ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+" + (100 + st.length() * 7)).withStyle(net.minecraft.ChatFormatting.RED)));
+		}
+		lore.add(Component.empty());
+		String[] ench = {"Sharpness VII", "Critical VII", "Giant Killer VII", "Ender Slayer VII", "Vampirism VI", "Looting V",
+				"Scavenger V", "Luck VII", "Champion X", "Cleave VI", "Thunderlord VII", "Lethality VI", "Fire Aspect III",
+				"Venomous VI", "Smite VII", "Bane of Arthropods VII", "Experience V", "First Strike V", "Execute VI", "Prosecute VI"};
+		for (String e : ench) {
+			lore.add(Component.literal(e).withStyle(net.minecraft.ChatFormatting.BLUE));
+			lore.add(Component.literal("Increases damage dealt by a lot in situations that matter, with a long description.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		}
+		lore.add(Component.empty());
+		lore.add(Component.literal("Ability: Wither Impact RIGHT CLICK").withStyle(net.minecraft.ChatFormatting.GOLD));
+		lore.add(Component.literal("Teleport 10 blocks ahead of you. Then implode dealing damage to nearby enemies.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		lore.add(Component.empty());
+		lore.add(Component.literal("LEGENDARY DUNGEON SWORD").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
 		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lore));
 		return s;
 	}

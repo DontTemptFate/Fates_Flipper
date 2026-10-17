@@ -89,6 +89,37 @@ public final class Card {
 		g.pose().popMatrix();
 	}
 
+	/**
+	 * Draws only {@code viewH} pixels of the card's height (unscaled), its content shifted up by
+	 * {@code offset} and clipped to the frame, with a scrollbar on the right. For tooltips taller
+	 * than the screen.
+	 */
+	public void drawScrolled(GuiGraphicsExtractor g, int x, int y, int viewH, int offset) {
+		int cw = contentWidth();
+		int w = cw + 2 * Ui.INSET_X;
+		int h = height();
+		Ui.frame(g, x, y, w, viewH, alpha);
+		g.enableScissor(x + 4, y + 4, x + w - 4, y + viewH - 4);
+		int cy = y + Ui.INSET_Y - offset;
+		for (int i = 0; i < rows.size(); i++) {
+			cy += gaps.get(i);
+			El e = rows.get(i);
+			int eh = e.height(cw);
+			if (cy + eh >= y && cy <= y + viewH) e.draw(g, x + Ui.INSET_X, cy, cw);
+			cy += eh;
+		}
+		g.disableScissor();
+		// scrollbar: track and thumb inside the right border
+		int trackTop = y + 6;
+		int trackH = viewH - 12;
+		int bx = x + w - 7;
+		g.fill(bx, trackTop, bx + 2, trackTop + trackH, Ui.RULE);
+		int thumbH = Math.max(8, Math.round(trackH * (float) viewH / h));
+		int maxOff = Math.max(1, h - viewH);
+		int thumbY = trackTop + Math.round((trackH - thumbH) * Math.min(1f, (float) offset / maxOff));
+		g.fill(bx, thumbY, bx + 2, thumbY + thumbH, Ui.PINK);
+	}
+
 	// ==== elements ==================================================================================
 
 	public interface El {
@@ -173,8 +204,8 @@ public final class Card {
 			List<Seg> all = new ArrayList<>(left);
 			all.addAll(right);
 			int base = y + cap(all);
-			drawSegs(g, left, x, base);
-			if (!right.isEmpty()) drawSegs(g, right, x + w - width(right), base);
+			int end = drawSegs(g, left, x, base);
+			if (!right.isEmpty() && end + 6 <= x + w - width(right)) drawSegs(g, right, x + w - width(right), base);
 		}
 	}
 
@@ -228,7 +259,8 @@ public final class Card {
 				Ui.ring(g, tx, by, tagW(), bh, 1, tagBorder);
 				Ui.draw(g, tag.c(), tag.role(), tx + 4, by + 2 + tag.role().cap());
 			}
-			if (!right.isEmpty()) drawSegs(g, right, x + w - width(right), base);
+			int used = nx + (tag != null && !tagFar ? 5 + tagW() : 0);
+			if (!right.isEmpty() && used + 6 <= x + w - width(right)) drawSegs(g, right, x + w - width(right), base);
 		}
 	}
 
@@ -474,10 +506,12 @@ public final class Card {
 			g.fill(x - 2, dy - 2, x + 6, dy + 6, 0x18000000 | rgb);
 			g.fill(x - 1, dy - 1, x + 5, dy + 5, 0x30000000 | rgb);
 			g.fill(x, dy, x + 4, dy + 4, color);
-			Ui.draw(g, Ui.t(label, Role.LABEL, color), Role.LABEL, x + 9, base);
+			Component lc = Ui.t(label, Role.LABEL, color);
+			Ui.draw(g, lc, Role.LABEL, x + 9, base);
 			if (hint != null) {
 				Component h = Ui.t(hint, Role.LABEL, Ui.DARK);
-				Ui.draw(g, h, Role.LABEL, x + w - Ui.width(h, Role.LABEL), base);
+				int hx = x + w - Ui.width(h, Role.LABEL);
+				if (hx >= x + 9 + Ui.width(lc, Role.LABEL) + 6) Ui.draw(g, h, Role.LABEL, hx, base);
 			}
 		}
 	}
