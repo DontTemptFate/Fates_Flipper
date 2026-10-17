@@ -608,7 +608,7 @@ public final class Card {
 	}
 
 	/** Empty space. */
-	public static El space(int h) {
+	public static El spacer(int h) {
 		return new El() {
 			public int prefWidth(int max) {
 				return 0;
