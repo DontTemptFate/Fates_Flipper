@@ -78,6 +78,9 @@ public final class AuctionOverlay {
 	public static void register(FlipService service) {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
 			if (!(screen instanceof AbstractContainerScreen<?> acs)) return;
+			// mouse wheel scrolls a long Fates item tooltip (any container window)
+			ScreenMouseEvents.allowMouseScroll(screen).register((s, mx, my, hAmount, vAmount) ->
+					!io.github.donttemptfate.fatesflipper.ui.ItemTooltips.scroll(vAmount));
 			State state = STATES.get(screen);
 			if (state == null) {
 				Kind kind = kindOf(screen);
