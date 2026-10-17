@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "fatesflipper:chakra/ChakraPetch-SemiBold.ttf",
+      "shift": [
+        0.0,
+        0.0
+      ],
+      "size": 6.0,
+      "oversample": 4.0
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

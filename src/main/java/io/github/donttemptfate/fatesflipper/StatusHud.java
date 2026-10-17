@@ -24,6 +24,21 @@ public final class StatusHud {
 					String text = text(service);
 					if (text == null) return;
 					int color = service.streamState() == FlipStream.State.CONNECTED ? 0xFF55FF77 : 0xFFFFAA33;
+					if (service.config().fatesLook) {
+						try {
+							var card = new io.github.donttemptfate.fatesflipper.ui.Card(0.80f, 0, 260).add(
+									new io.github.donttemptfate.fatesflipper.ui.Card.Status(
+											text.replace("Fates Flipper: ", "FATES · ").toUpperCase(java.util.Locale.ROOT),
+											service.streamState() == FlipStream.State.CONNECTED ? io.github.donttemptfate.fatesflipper.ui.Ui.GREEN
+													: service.streamState() == FlipStream.State.STOPPED ? io.github.donttemptfate.fatesflipper.ui.Ui.RED
+													: io.github.donttemptfate.fatesflipper.ui.Ui.ORANGE,
+											null));
+							card.draw(g, 6, 6, 1f);
+							return;
+						} catch (RuntimeException e) {
+							// fall back to the plain line below
+						}
+					}
 					int w = mc.font.width(text) + 6;
 					g.fill(2, 2, 2 + w, 4 + mc.font.lineHeight + 2, 0x90000000);
 					g.text(mc.font, text, 5, 5, color, true);

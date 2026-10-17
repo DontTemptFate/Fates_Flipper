@@ -345,6 +345,36 @@ public final class AuctionOverlay {
 
 	private static void panel(FlipService service, AbstractContainerScreen<?> screen, State state, GuiGraphicsExtractor g,
 			Font font, int left, int top, int imageWidth, Slot target, ButtonState bs) {
+		if (service.config().fatesLook) {
+			fatesPanel(service, screen, state, g, left, top, imageWidth, target, bs);
+			return;
+		}
+		classicPanel(service, screen, state, g, font, left, top, imageWidth, target, bs);
+	}
+
+	/** The side panel in the Fates look (design 2.1), shrunk to fit beside the window, never over it. */
+	private static void fatesPanel(FlipService service, AbstractContainerScreen<?> screen, State state, GuiGraphicsExtractor g,
+			int left, int top, int imageWidth, Slot target, ButtonState bs) {
+		var card = io.github.donttemptfate.fatesflipper.ui.Cards.auctionPanel(state.opened.flip(), service.lastOpenedPrice(),
+				state.kind == Kind.CONFIRM, bs, target == null ? "" : name(target.getItem()),
+				service.config().cursorAssist, service.config().pressAgainToClose);
+		int w = card.width();
+		int h = card.height();
+		int spaceRight = screen.width - (left + imageWidth) - 8;
+		int spaceLeft = left - 8;
+		boolean right = spaceRight >= spaceLeft;
+		int avail = right ? spaceRight : spaceLeft;
+		float scale = Math.min(1f, Math.min((float) avail / w, (screen.height - 8f) / h));
+		if (scale < 0.45f) return; // no room beside the window: show nothing rather than cover it
+		int sw = Math.round(w * scale);
+		int sh = Math.round(h * scale);
+		int x = right ? left + imageWidth + 6 : left - 6 - sw;
+		int y = Math.max(4, Math.min(top, screen.height - sh - 4));
+		card.draw(g, x, y, scale);
+	}
+
+	private static void classicPanel(FlipService service, AbstractContainerScreen<?> screen, State state, GuiGraphicsExtractor g,
+			Font font, int left, int top, int imageWidth, Slot target, ButtonState bs) {
 		List<Line> lines = new ArrayList<>();
 		FlipEvent f = state.opened.flip();
 		lines.add(new Line("Fates Flipper", GOLD));

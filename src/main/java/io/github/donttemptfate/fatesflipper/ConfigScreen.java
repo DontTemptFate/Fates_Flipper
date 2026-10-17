@@ -19,9 +19,9 @@ public final class ConfigScreen extends Screen {
 			"Cursor assist moves the cursor onto Buy, then Confirm, once per auction you open from a flip. "
 					+ "It never clicks. Hypixel doesn't certify mods: use at your own risk.";
 
-	/** Layout: everything fits in 232 scaled pixels (480p at GUI scale 2), centred when taller. */
-	private static final int W = 310;
-	private static final int H = 232;
+	/** Layout: everything fits in 220 scaled pixels (480p at GUI scale 2), centred when taller. */
+	private static final int W = 330;
+	private static final int H = 220;
 
 	private final Screen parent;
 	private final FlipService service;
@@ -47,31 +47,35 @@ public final class ConfigScreen extends Screen {
 		int x = (this.width - W) / 2;
 		int t = top();
 
-		server = new EditBox(this.font, x, t + 28, W, 16, Component.literal("Server address"));
+		server = new EditBox(this.font, x, t + 34, W, 16, Component.literal("Server address"));
 		server.setMaxLength(200);
 		server.setValue(draft.serverUrl);
 		server.setHint(Component.literal("https://your-viewer-address"));
 		addRenderableWidget(server);
 
-		token = new EditBox(this.font, x, t + 58, W, 16, Component.literal("Mod token"));
+		token = new EditBox(this.font, x, t + 64, W, 16, Component.literal("Mod token"));
 		token.setMaxLength(300);
 		token.setValue(draft.token);
 		token.setHint(Component.literal("fv_… (web page → account menu → Mod tokens)"));
 		addRenderableWidget(token);
 
-		int half = (W - 6) / 2;
-		int y = t + 80;
-		toggle(x, y, half, "Flip alerts", c -> c.alerts, (c) -> c.alerts = !c.alerts);
-		toggle(x + half + 6, y, half, "Alert sound", c -> c.sound, (c) -> c.sound = !c.sound);
-		y += 22;
-		toggle(x, y, half, "Price tooltips", c -> c.tooltips, (c) -> c.tooltips = !c.tooltips);
-		toggle(x + half + 6, y, half, "Auction overlay", c -> c.auctionOverlay, (c) -> c.auctionOverlay = !c.auctionOverlay);
-		y += 22;
-		toggle(x, y, half, "Status display", c -> c.hudStatus, (c) -> c.hudStatus = !c.hudStatus);
-		toggle(x + half + 6, y, half, "Only on Hypixel", c -> c.onlyOnHypixel, (c) -> c.onlyOnHypixel = !c.onlyOnHypixel);
-		y += 22;
-		toggle(x, y, half, "Key again closes", c -> c.pressAgainToClose, (c) -> c.pressAgainToClose = !c.pressAgainToClose);
-		toggle(x + half + 6, y, half, "Cursor assist", c -> c.cursorAssist, (c) -> c.cursorAssist = !c.cursorAssist);
+		int col = (W - 12) / 3;
+		int y = t + 96;
+		int[] cx = {x, x + col + 6, x + 2 * (col + 6)};
+		toggle(cx[0], y, col, "Flip alerts", c -> c.alerts, c -> c.alerts = !c.alerts);
+		toggle(cx[1], y, col, "Alert sound", c -> c.sound, c -> c.sound = !c.sound);
+		toggle(cx[2], y, col, "Hypixel only", c -> c.onlyOnHypixel, c -> c.onlyOnHypixel = !c.onlyOnHypixel);
+		y += 20;
+		toggle(cx[0], y, col, "Price tooltips", c -> c.tooltips, c -> c.tooltips = !c.tooltips);
+		toggle(cx[1], y, col, "Auction overlay", c -> c.auctionOverlay, c -> c.auctionOverlay = !c.auctionOverlay);
+		toggle(cx[2], y, col, "Status display", c -> c.hudStatus, c -> c.hudStatus = !c.hudStatus);
+		y += 20;
+		toggle(cx[0], y, col, "Fates look", c -> c.fatesLook, c -> c.fatesLook = !c.fatesLook);
+		toggle(cx[1], y, col, "Fates tooltips", c -> c.fatesTooltips, c -> c.fatesTooltips = !c.fatesTooltips);
+		toggle(cx[2], y, col, "Chakra font", c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
+		y += 20;
+		toggle(cx[0], y, col, "Key again closes", c -> c.pressAgainToClose, c -> c.pressAgainToClose = !c.pressAgainToClose);
+		toggle(cx[1], y, col, "Cursor assist", c -> c.cursorAssist, c -> c.cursorAssist = !c.cursorAssist);
 
 		int third = (W - 12) / 3;
 		int by = t + H - 20;
@@ -84,12 +88,14 @@ public final class ConfigScreen extends Screen {
 		Button b = Button.builder(label(label, get.apply(draft)), btn -> {
 			flip.accept(draft);
 			btn.setMessage(label(label, get.apply(draft)));
-		}).bounds(x, y, w, 20).build();
+		}).bounds(x, y, w, 18).build();
 		addRenderableWidget(b);
 	}
 
 	private static Component label(String label, boolean on) {
-		return Component.literal(label + ": " + (on ? "§aON" : "§cOFF"));
+		return io.github.donttemptfate.fatesflipper.ui.Ui.t(label + ": ", io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL, 0xFFFFFF)
+				.append(io.github.donttemptfate.fatesflipper.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL,
+						on ? 0x55FF55 : 0xFF5555));
 	}
 
 	private ModConfig collect() {
@@ -140,29 +146,37 @@ public final class ConfigScreen extends Screen {
 		this.messageColor = color;
 	}
 
+	/** The Fates frame behind the form (drawn after the blurred background, before the widgets). */
+	@Override
+	public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+		super.extractBackground(g, mouseX, mouseY, delta);
+		int x = (this.width - W) / 2;
+		int t = top();
+		io.github.donttemptfate.fatesflipper.ui.Ui.frame(g, x - 12, Math.max(0, t - 6), W + 24, Math.min(this.height, H + 12), 0.94f);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
 		super.extractRenderState(g, mouseX, mouseY, delta);
 		int x = (this.width - W) / 2;
 		int t = top();
-		g.centeredText(this.font, this.title, this.width / 2, t + 4, 0xFFFFC23D);
-		g.text(this.font, "Server address", x, t + 18, 0xFFCCCCCC, true);
-		g.text(this.font, "Mod token (kept only in config/fatesflipper.json)", x, t + 48, 0xFFCCCCCC, true);
-		int ty = t + 170;
-		int lines = 0;
-		if (message.isEmpty()) {
-			for (String part : wrap(CURSOR_ASSIST_RISK, W)) {
-				if (lines++ >= 3) break;
-				g.text(this.font, part, x, ty, 0xFFFFAA33, false);
-				ty += this.font.lineHeight + 1;
-			}
-		} else {
-			for (String part : wrap(message, W)) {
-				if (lines++ >= 3) break;
-				g.text(this.font, part, x, ty, messageColor, true);
-				ty += this.font.lineHeight + 1;
-			}
-		}
+		new io.github.donttemptfate.fatesflipper.ui.Card.Line(
+				java.util.List.of(io.github.donttemptfate.fatesflipper.ui.Card.seg("FATES FLIPPER", io.github.donttemptfate.fatesflipper.ui.Ui.Role.LABEL, io.github.donttemptfate.fatesflipper.ui.Ui.PINK)),
+				java.util.List.of(io.github.donttemptfate.fatesflipper.ui.Card.seg("SETTINGS", io.github.donttemptfate.fatesflipper.ui.Ui.Role.LABEL, io.github.donttemptfate.fatesflipper.ui.Ui.GRAY)))
+				.draw(g, x, t + 2, W);
+		rule(g, "SERVER ADDRESS", x, t + 22);
+		rule(g, "MOD TOKEN · KEPT ONLY IN CONFIG/FATESFLIPPER.JSON", x, t + 52);
+		rule(g, "DISPLAY & ALERTS", x, t + 84);
+		int ty = t + 177;
+		String text = message.isEmpty() ? CURSOR_ASSIST_RISK : message;
+		int color = message.isEmpty() ? 0xFFFFAA00 : messageColor;
+		new io.github.donttemptfate.fatesflipper.ui.Card.Text(
+				io.github.donttemptfate.fatesflipper.ui.Ui.t(text, io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL, color),
+				io.github.donttemptfate.fatesflipper.ui.Ui.Role.SMALL, 0, 2).draw(g, x, ty, W);
+	}
+
+	private static void rule(GuiGraphicsExtractor g, String label, int x, int y) {
+		new io.github.donttemptfate.fatesflipper.ui.Card.Rule(label, io.github.donttemptfate.fatesflipper.ui.Ui.GRAY, null).draw(g, x, y, W);
 	}
 
 	private java.util.List<String> wrap(String text, int width) {

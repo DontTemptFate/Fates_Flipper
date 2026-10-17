@@ -144,6 +144,49 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			check(ctx.computeOnClient(mc -> mc.gui.screen() == null), "the close key didn't close the flip's window");
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 
+			// 4e. the Fates look: card gallery (font calibration, flip hover, item tooltips, side panel)
+			ctx.getInput().resizeWindow(1280, 720);
+			ctx.waitTicks(10);
+			io.github.donttemptfate.fatesflipper.core.FlipEvent galleryFlip = ctx.computeOnClient(mc -> service.recentFlip(FakeViewer.FLIP_ID));
+			ItemStack rich = richItem();
+			ItemStack simple = simpleItem();
+			for (int page = 0; page < 3; page++) {
+				int p = page;
+				ctx.setScreen(() -> new CardGallery(p, galleryFlip, rich, simple));
+				ctx.waitTicks(10);
+				ctx.takeScreenshot("06_gallery_" + p);
+			}
+			// 4f. a real hovered item in a chest: our tooltip replaces vanilla's
+			SimpleContainer chest = new SimpleContainer(27);
+			chest.setItem(10, rich);
+			chest.setItem(12, simple);
+			ctx.runOnClient(mc -> mc.gui.setScreen(new ContainerScreen(ChestMenu.threeRows(0, mc.player.getInventory(), chest),
+					mc.player.getInventory(), Component.literal("Chest"))));
+			ctx.waitTicks(10);
+			double[] at = ctx.computeOnClient(mc -> {
+				var acc = (io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor) mc.gui.screen();
+				var slot = ((ContainerScreen) mc.gui.screen()).getMenu().slots.get(10);
+				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
+				return new double[] {(acc.fatesflipper$getLeftPos() + slot.x + 8) * scale, (acc.fatesflipper$getTopPos() + slot.y + 8) * scale};
+			});
+			ctx.getInput().setCursorPos(at[0], at[1]);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("07_item_tooltip_live");
+			ctx.runOnClient(mc -> mc.gui.setScreen(null));
+			// 4g. chat: open it and hover the newest alert line (best effort: position depends on the chat layout)
+			ctx.runOnClient(mc -> mc.gui.setScreen(new net.minecraft.client.gui.screens.ChatScreen("", false)));
+			ctx.waitTicks(5);
+			double[] chatAt = ctx.computeOnClient(mc -> {
+				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
+				return new double[] {30 * scale, (mc.getWindow().getGuiScaledHeight() - 44) * scale};
+			});
+			ctx.getInput().setCursorPos(chatAt[0], chatAt[1]);
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("08_chat_hover");
+			ctx.runOnClient(mc -> mc.gui.setScreen(null));
+			ctx.getInput().resizeWindow(854, 480);
+			ctx.waitTicks(10);
+
 			// 5. settings screen
 			ctx.setScreen(() -> new ConfigScreen(null, service));
 			ctx.waitTicks(10);
@@ -220,6 +263,62 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			for (String l : lore) lines.add(Component.literal(l));
 			s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lines));
 		}
+		return s;
+	}
+
+	/** A long SkyBlock tooltip like a farming tool's: stats, enchants with descriptions, a level bar. */
+	private static ItemStack richItem() {
+		ItemStack s = new ItemStack(Items.DIAMOND_HOE);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", "FUNGI_CUTTER_2");
+		tag.putString("uuid", FakeViewer.NEVER_UUID);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal("Bountiful Fungi Cutter Mk. II").withStyle(net.minecraft.ChatFormatting.BLUE));
+		List<Component> lore = new java.util.ArrayList<>();
+		lore.add(Component.literal("Efficiency V").withStyle(net.minecraft.ChatFormatting.BLUE));
+		lore.add(Component.literal("Farming Tool").withStyle(net.minecraft.ChatFormatting.GRAY));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Farming Fortune: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+79.5 ").withStyle(net.minecraft.ChatFormatting.GOLD)).append(Component.literal("(+3)").withStyle(net.minecraft.ChatFormatting.GREEN)));
+		lore.add(Component.literal("Mushroom Fortune: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+49").withStyle(net.minecraft.ChatFormatting.GOLD)));
+		lore.add(Component.literal("Speed: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+3 ").withStyle(net.minecraft.ChatFormatting.WHITE)).append(Component.literal("(+3)").withStyle(net.minecraft.ChatFormatting.GREEN)));
+		lore.add(Component.literal("Farming Wisdom: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("+7").withStyle(net.minecraft.ChatFormatting.AQUA)));
+		lore.add(Component.literal("Gemstones: ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("[◇] [◇]").withStyle(net.minecraft.ChatFormatting.DARK_GRAY)));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Cultivating VII ").withStyle(net.minecraft.ChatFormatting.BLUE).append(Component.literal("1,893,885").withStyle(net.minecraft.ChatFormatting.GRAY)));
+		lore.add(Component.literal("Gain +7 Farming Wisdom and +14 Farming Fortune.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		lore.add(Component.literal("Harvesting V").withStyle(net.minecraft.ChatFormatting.BLUE));
+		lore.add(Component.literal("Grants +62.5 Farming Fortune, which increases your chance for multiple crops.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		lore.add(Component.literal("Efficiency V").withStyle(net.minecraft.ChatFormatting.BLUE));
+		lore.add(Component.literal("Increases how quickly your tool breaks blocks.").withStyle(net.minecraft.ChatFormatting.GRAY));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Level ").withStyle(net.minecraft.ChatFormatting.GRAY).append(Component.literal("22 -> 23").withStyle(net.minecraft.ChatFormatting.GREEN)));
+		lore.add(Component.literal("━━━━━━━━").withStyle(net.minecraft.ChatFormatting.GREEN).append(Component.literal("━━━━━━━━━━━").withStyle(net.minecraft.ChatFormatting.WHITE)).append(Component.literal(" 42.42%").withStyle(net.minecraft.ChatFormatting.YELLOW)));
+		lore.add(Component.empty());
+		lore.add(Component.literal("Right-click to view recipes!").withStyle(net.minecraft.ChatFormatting.YELLOW));
+		lore.add(Component.empty());
+		lore.add(Component.literal("RARE FARMING TOOL").withStyle(net.minecraft.ChatFormatting.BLUE, net.minecraft.ChatFormatting.BOLD));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lore));
+		return s;
+	}
+
+	/** A short SkyBlock tooltip (a cosmetic): name, a description, an action line, the rarity. */
+	private static ItemStack simpleItem() {
+		ItemStack s = new ItemStack(Items.PAPER);
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", "BARN_SKIN_6TH_ANNIVERSARY");
+		tag.putString("uuid", FakeViewer.ITEM_UUID);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal("6th Anniversary Barn Skin").withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+		s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(List.of(
+				Component.literal("Consume this item to unlock the ").withStyle(net.minecraft.ChatFormatting.GRAY)
+						.append(Component.literal("6th Anniversary Barn Skin").withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE))
+						.append(Component.literal(" on ").withStyle(net.minecraft.ChatFormatting.GRAY))
+						.append(Component.literal("The Garden").withStyle(net.minecraft.ChatFormatting.GREEN))
+						.append(Component.literal("!").withStyle(net.minecraft.ChatFormatting.GRAY)),
+				Component.empty(),
+				Component.literal("Click to consume!").withStyle(net.minecraft.ChatFormatting.YELLOW),
+				Component.empty(),
+				Component.literal("LEGENDARY COSMETIC").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD))));
 		return s;
 	}
 

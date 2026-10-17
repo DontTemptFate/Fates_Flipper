@@ -39,6 +39,12 @@ public final class ModConfig {
 	public boolean cursorAssist = false;
 	/** Pressing an open-flip key again inside that flip's auction window closes it (like Esc). */
 	public boolean pressAgainToClose = true;
+	/** The Fates look (purple cards, Chakra Petch) for the mod's panels, flip hovers and tooltips. */
+	public boolean fatesLook = true;
+	/** SkyBlock item tooltips in the Fates look (off = vanilla tooltips with price lines). */
+	public boolean fatesTooltips = true;
+	/** Chakra Petch font in the Fates look (off = Minecraft's font, same layout). */
+	public boolean chakraFont = true;
 	/** Only connect while on Hypixel. */
 	public boolean onlyOnHypixel = true;
 

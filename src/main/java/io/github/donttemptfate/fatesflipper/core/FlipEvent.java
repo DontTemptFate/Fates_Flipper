@@ -26,7 +26,9 @@ public record FlipEvent(
 		double chance,
 		String chat,
 		boolean commandMatches,
-		String profileName) {
+		String profileName,
+		/** Why confidence isn't HIGH ("wide prices", "few sales", …; viewer v0.28.1), or null. */
+		String confReason) {
 
 	public static FlipEvent parse(JsonObject flip) {
 		if (flip == null) return null;
@@ -62,7 +64,8 @@ public record FlipEvent(
 				Json.num(score, "chance", Double.NaN),
 				Json.str(flip, "chat"),
 				matches,
-				Json.str(profile, "name"));
+				Json.str(profile, "name"),
+				clean(Json.str(est, "conf_reason")));
 	}
 
 	private static String clean(String s) {

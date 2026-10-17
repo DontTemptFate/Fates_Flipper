@@ -57,6 +57,7 @@ public final class Alerts {
 		if (f.dupe() != null) line(c, "Dupe check", LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT), ChatFormatting.RED);
 		if (f.firstSeenAt() > 0) line(c, "Listed", Coins.age(System.currentTimeMillis() - f.firstSeenAt()) + " ago", ChatFormatting.GRAY);
 		c.append(Component.literal("Click to open the auction").withStyle(ChatFormatting.GOLD));
+		io.github.donttemptfate.fatesflipper.ui.FlipHovers.register(c, f); // shown as the Fates flip card
 		return c;
 	}
 
