@@ -70,7 +70,8 @@ public final class ConfigScreen extends Screen {
 		toggle(x, y, half, "Status display", c -> c.hudStatus, (c) -> c.hudStatus = !c.hudStatus);
 		toggle(x + half + 6, y, half, "Only on Hypixel", c -> c.onlyOnHypixel, (c) -> c.onlyOnHypixel = !c.onlyOnHypixel);
 		y += 22;
-		toggle(x, y, W, "Cursor assist (opt-in, see below)", c -> c.cursorAssist, (c) -> c.cursorAssist = !c.cursorAssist);
+		toggle(x, y, half, "Key again closes", c -> c.pressAgainToClose, (c) -> c.pressAgainToClose = !c.pressAgainToClose);
+		toggle(x + half + 6, y, half, "Cursor assist", c -> c.cursorAssist, (c) -> c.cursorAssist = !c.cursorAssist);
 
 		int third = (W - 12) / 3;
 		int by = t + H - 20;

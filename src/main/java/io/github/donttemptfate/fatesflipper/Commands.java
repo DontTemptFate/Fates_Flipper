@@ -48,6 +48,7 @@ public final class Commands {
 				.then(toggle("tooltips", s, (cfg, v) -> cfg.tooltips = v, "Price tooltips"))
 				.then(toggle("overlay", s, (cfg, v) -> cfg.auctionOverlay = v, "Auction window overlay"))
 				.then(toggle("hud", s, (cfg, v) -> cfg.hudStatus = v, "Status display"))
+				.then(toggle("closekey", s, (cfg, v) -> cfg.pressAgainToClose = v, "Press the open key again to close a flip"))
 				.then(ClientCommands.literal("cursorassist")
 						.then(ClientCommands.literal("on").executes(c -> {
 							setBool(s, (cfg, v) -> cfg.cursorAssist = v, true, "Cursor assist on.");
@@ -104,6 +105,7 @@ public final class Commands {
 				{"/ff profiles", "list your flip profiles; /ff profile <name> to switch, /ff profile off"},
 				{"/ff on | off", "flip alerts on / off"},
 				{"/ff sound|tooltips|overlay|hud on|off", "toggles"},
+				{"/ff closekey on|off", "press the open key again to close the flip (on)"},
 				{"/ff cursorassist on|off", "opt-in, off by default (read the warning)"},
 				{"/ff reconnect", "connect again now"},
 		};
@@ -132,7 +134,7 @@ public final class Commands {
 		row("Flip alerts", st);
 		row("Flip profile", s.profileName() == null ? "(none / unknown)" : s.profileName());
 		row("Toggles", "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
-				+ ", hud " + onOff(c.hudStatus) + ", cursor assist " + onOff(c.cursorAssist));
+				+ ", hud " + onOff(c.hudStatus) + ", close key " + onOff(c.pressAgainToClose) + ", cursor assist " + onOff(c.cursorAssist));
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();

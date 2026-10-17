@@ -39,6 +39,8 @@ public final class FlipService implements FlipStream.Listener {
 	private final FlipStream stream;
 	private final PriceCache itemPrices;
 	private final Timing.Cooldown commandCooldown = new Timing.Cooldown(COMMAND_COOLDOWN_MS);
+	/** Open-flip key presses (open and close alike): at most one action per half second. */
+	private final Timing.Cooldown keyCooldown = new Timing.Cooldown(COMMAND_COOLDOWN_MS);
 
 	private final Deque<FlipEvent> recent = new ArrayDeque<>();
 	private final LinkedHashSet<String> openedIds = new LinkedHashSet<>();
@@ -292,6 +294,46 @@ public final class FlipService implements FlipStream.Listener {
 		return true;
 	}
 
+	/** A press of an open-flip key may act now (shared by open and close, so a quick double tap can't close and reopen). */
+	public boolean keyActionAllowed() {
+		return keyCooldown.tryAcquire(System.currentTimeMillis());
+	}
+
+	/**
+	 * The open-flip key pressed again inside the flip's own auction / confirm window: closes it,
+	 * exactly like Esc (the flip stays skipped). Never sends anything else.
+	 */
+	public void closeFlipWindow(net.minecraft.client.gui.screens.Screen screen) {
+		if (!keyActionAllowed()) return;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.gui.screen() != screen) return;
+		screen.onClose();
+	}
+
+	/**
+	 * Why the key found nothing, from {@code /mod/next} (viewer v0.28.1: {@code matching}, {@code skipped},
+	 * {@code held}, {@code next_in_s}; older viewers only send {@code waiting}).
+	 */
+	static String noFlipMessage(String mode, com.google.gson.JsonObject json) {
+		long matching = Json.lng(json, "matching", -1);
+		if (matching >= 0) {
+			long skipped = Json.lng(json, "skipped", 0);
+			long held = Json.lng(json, "held", 0);
+			long nextIn = Json.lng(json, "next_in_s", -1);
+			if (held > 0) {
+				return "No " + mode + " flip ready yet: " + held + " coming" + (nextIn >= 0 ? " in " + nextIn + " s." : " soon.");
+			}
+			if (matching > 0 && skipped >= matching) {
+				return "No new " + mode + " flip: " + matching + " matched, all already opened.";
+			}
+			return "No " + mode + " flip right now.";
+		}
+		long waiting = Json.lng(json, "waiting", 0);
+		return waiting > 0
+				? "No new " + mode + " flip right now (" + waiting + " matched, already opened or not visible yet)."
+				: "No " + mode + " flip right now.";
+	}
+
 	/** The open best / safest flip key: one lookup, then at most one command. */
 	public void openNext(String mode) {
 		if (!config.isReady()) {
@@ -315,10 +357,8 @@ public final class FlipService implements FlipStream.Listener {
 			}
 			FlipEvent f = FlipEvent.parse(Json.obj(r.json(), "flip"));
 			if (f == null || !f.commandMatches()) {
-				long waiting = Json.lng(r.json(), "waiting", 0);
-				mc.execute(() -> Chat.info(waiting > 0
-						? "No " + mode + " flip ready yet (" + waiting + " coming up after your delay)."
-						: "No " + mode + " flip right now."));
+				String msg = noFlipMessage(mode, r.json());
+				mc.execute(() -> Chat.info(msg));
 				return java.util.concurrent.CompletableFuture.completedFuture(null);
 			}
 			return api.auction(f.auctionId()).thenAccept(state -> {
