@@ -47,7 +47,9 @@ jobs:
                    net.minecraft.network.chat.FontDescription net.minecraft.client.gui.components.ChatComponent \
                    net.minecraft.client.gui.Font net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil \
                    net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent net.minecraft.client.gui.screens.Screen \
-                   net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner; do
+                   net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner \
+                   net.minecraft.client.KeyMapping net.minecraft.client.Options \
+                   com.mojang.blaze3d.platform.InputConstants 'com.mojang.blaze3d.platform.InputConstants$Type'; do
             echo "=== $c" >> api.txt
             javap -p -cp "$jar" "$c" >> api.txt 2>&1 || true
           done

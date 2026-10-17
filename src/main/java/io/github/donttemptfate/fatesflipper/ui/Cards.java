@@ -205,6 +205,10 @@ public final class Cards {
 				c.add(valueRow(seg("loading…", Role.SMALL, Ui.DARK)));
 			}
 			case FOUND -> found(c, d);
+			case BAZAAR -> {
+				c.space(2).add(new Rule("FATES", Ui.PINK, null));
+				c.add(valueRow(seg("Bazaar item, see the Bazaar for prices", Role.SMALL, Ui.DARK)));
+			}
 			case NO_EXACT, NOT_TRADED -> {
 				c.space(2).add(new Rule("FATES", Ui.PINK, null));
 				if (!rough(c, d)) {

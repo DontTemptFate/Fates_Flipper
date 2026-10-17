@@ -2,6 +2,8 @@ package io.github.donttemptfate.fatesflipper;
 
 import com.google.gson.JsonObject;
 import io.github.donttemptfate.fatesflipper.core.AuctionIds;
+import io.github.donttemptfate.fatesflipper.core.BazaarIds;
+import io.github.donttemptfate.fatesflipper.core.LoreParts;
 import io.github.donttemptfate.fatesflipper.core.Coins;
 import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.PriceCache;
@@ -36,6 +38,49 @@ public final class PriceTooltips {
 				// a tooltip must never crash the game
 			}
 		});
+		bazaar = new BazaarIds(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("fatesflipper-bazaar.txt"));
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+			try {
+				if (++ticks % 20 != 0) return;
+				if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> acs) learnBazaar(acs);
+				if (ticks % 200 == 0) bazaar.saveIfDirty();
+			} catch (RuntimeException e) {
+				// never crash the game
+			}
+		});
+	}
+
+	private static int ticks;
+	/** Bazaar product ids learned from Hypixel's Bazaar windows (see {@link BazaarIds}). */
+	private static volatile BazaarIds bazaar = new BazaarIds(null);
+
+	public static BazaarIds bazaar() {
+		return bazaar;
+	}
+
+	/** Once a second while a window is open: remembers the ids of Bazaar products shown in it. */
+	static void learnBazaar(net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen) {
+		for (net.minecraft.world.inventory.Slot slot : screen.getMenu().slots) {
+			if (slot.container instanceof net.minecraft.world.entity.player.Inventory) continue;
+			ItemStack stack = slot.getItem();
+			CompoundTag data = ItemBytes.skyblockData(stack);
+			if (data == null || !data.getStringOr("uuid", "").isEmpty()) continue;
+			if (LoreParts.isBazaarProduct(ItemBytes.plain(ItemBytes.lore(stack)))) bazaar.learn(data.getStringOr("id", ""));
+		}
+	}
+
+	/**
+	 * A Bazaar product: its Bazaar menu item (lore says "commodity" / shows buy and sell prices), or
+	 * an item without a uuid whose id was seen in the Bazaar.
+	 */
+	static boolean isBazaar(ItemStack stack, CompoundTag data, String uuid) {
+		if (uuid != null) return false;
+		String id = data.getStringOr("id", "");
+		if (LoreParts.isBazaarProduct(ItemBytes.plain(ItemBytes.lore(stack)))) {
+			bazaar.learn(id);
+			return true;
+		}
+		return bazaar.contains(id);
 	}
 
 	/** Set when the viewer doesn't accept whole items yet (404 / 405); retried after 10 minutes. */
@@ -43,10 +88,11 @@ public final class PriceTooltips {
 	static final long UNSUPPORTED_RETRY_MS = 10 * 60_000;
 
 	/** What the price lookup has for an item right now (the same for tooltip lines and the Fates card). */
-	public enum Kind { HIDDEN, LOADING, FOUND, NO_EXACT, NOT_TRADED }
+	public enum Kind { HIDDEN, LOADING, FOUND, NO_EXACT, NOT_TRADED, BAZAAR }
 
 	public record View(Kind kind, JsonObject data) {
 		static final View HIDDEN = new View(Kind.HIDDEN, null);
+		static final View LOADING = new View(Kind.LOADING, null);
 	}
 
 	/** Looks the item up (cached; starts a lookup when needed) and says what to show. */
@@ -55,16 +101,18 @@ public final class PriceTooltips {
 		CompoundTag data = ItemBytes.skyblockData(stack);
 		if (data == null) return View.HIDDEN; // not a SkyBlock item
 		String uuid = AuctionIds.normalize(data.getStringOr("uuid", ""));
+		// Bazaar products: Hypixel shows their real prices; auction lookups would only say "no sales"
+		if (isBazaar(stack, data, uuid)) return new View(Kind.BAZAAR, null);
 		PriceCache prices = service.itemPrices();
 
 		PriceCache.Entry byUuid = null;
 		if (uuid != null) {
 			byUuid = prices.get("u:" + uuid, () -> service.api().priceByItem(uuid));
-			if (byUuid == null) return View.HIDDEN;
-			if (byUuid.state() == PriceCache.State.FOUND || (byUuid.state() == PriceCache.State.LOADING && byUuid.data() != null)) {
+			if (byUuid == null) return View.LOADING; // rate limit: try again next frame
+			if (byUuid.state() == PriceCache.State.FOUND || (byUuid.state() == PriceCache.State.LOADING && byUuid.data() != null && Json.bool(byUuid.data(), "found", false))) {
 				return new View(Kind.FOUND, byUuid.data());
 			}
-			if (byUuid.state() == PriceCache.State.LOADING) return new View(Kind.LOADING, null);
+			if (byUuid.state() == PriceCache.State.LOADING && byUuid.data() == null) return View.LOADING;
 			if (byUuid.state() == PriceCache.State.FAILED) return View.HIDDEN; // /ff status shows connection problems
 		}
 
@@ -73,13 +121,15 @@ public final class PriceTooltips {
 			String key = uuid != null ? "b:" + uuid : ItemBytes.cacheKey(stack, data);
 			// built only when a lookup actually starts (on this thread, before the method returns)
 			PriceCache.Entry byItem = prices.get(key, () -> service.api().priceByItemBytes(ItemBytes.build(stack)));
-			if (byItem != null) {
-				switch (byItem.state()) {
+			if (byItem == null) return View.LOADING; // rate limit: try again next frame
+			switch (byItem.state()) {
 					case FOUND -> {
 						return new View(Kind.FOUND, byItem.data());
 					}
 					case LOADING -> {
-						return byItem.data() != null ? new View(Kind.FOUND, byItem.data()) : new View(Kind.LOADING, null);
+						// refreshing: keep showing the last answer, never flash back to "loading…"
+						if (byItem.data() == null) return View.LOADING;
+						return new View(Json.bool(byItem.data(), "found", false) ? Kind.FOUND : Kind.NO_EXACT, byItem.data());
 					}
 					case NOT_FOUND -> {
 						return new View(Kind.NO_EXACT, byItem.data());
@@ -89,10 +139,9 @@ public final class PriceTooltips {
 							bytesUnsupportedUntilMs = System.currentTimeMillis() + UNSUPPORTED_RETRY_MS;
 						}
 					}
-				}
 			}
 		}
-		if (byUuid != null && byUuid.state() == PriceCache.State.NOT_FOUND) return new View(Kind.NOT_TRADED, byUuid.data());
+		if (byUuid != null && (byUuid.state() == PriceCache.State.NOT_FOUND || byUuid.data() != null)) return new View(Kind.NOT_TRADED, byUuid.data());
 		return View.HIDDEN;
 	}
 
@@ -102,6 +151,7 @@ public final class PriceTooltips {
 			case HIDDEN -> {
 			}
 			case LOADING -> lines.add(gray("Fates: loading price…"));
+			case BAZAAR -> lines.add(gray("Fates: Bazaar item, see the Bazaar for prices"));
 			case FOUND -> addFound(v.data(), lines);
 			case NO_EXACT -> {
 				if (!addRough(v.data(), lines)) lines.add(gray("Fates: no sales of this exact item yet"));

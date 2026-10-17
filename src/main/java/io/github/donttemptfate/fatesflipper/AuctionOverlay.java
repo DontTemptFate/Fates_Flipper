@@ -120,7 +120,11 @@ public final class AuctionOverlay {
 			});
 			ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> {
 				try {
-					if (event.button() <= 1) return true; // left / right clicks are always the player's own
+					// left / right clicks are always the player's own. Named constants, not numbers:
+					// 26.3 (SDL3) numbers mouse buttons differently from 26.2 (GLFW)
+					int b = event.button();
+					if (b == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT
+							|| b == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) return true;
 					if (st.match != Boolean.TRUE || !service.config().pressAgainToClose) return true;
 					if (!matchesMouse(Keys.openBest, event) && !matchesMouse(Keys.openSafest, event)) return true;
 					service.closeFlipWindow(s);

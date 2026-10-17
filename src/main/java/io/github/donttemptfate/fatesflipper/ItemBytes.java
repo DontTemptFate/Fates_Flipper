@@ -45,12 +45,34 @@ public final class ItemBytes {
 		return tag.getStringOr("id", "").isEmpty() ? null : tag;
 	}
 
-	/** A cheap key for caching an item without a uuid: same data, name, lore and count → same key. */
+	/**
+	 * A cheap key for caching an item without a uuid: same data, name, own lore and count → same key.
+	 * Hypixel's listing lines (seller, price, the "Ends in" countdown) are left out, so an item in the
+	 * Auctions Browser keeps one key while its countdown ticks.
+	 */
 	public static String cacheKey(ItemStack stack, CompoundTag skyblockData) {
-		ItemLore lore = stack.get(DataComponents.LORE);
 		int h = Objects.hash(skyblockData, displayName(stack).getString(),
-				lore == null ? 0 : lore.lines().stream().map(Component::getString).toList(), stack.getCount());
+				ownLore(stack).stream().map(Component::getString).toList(), stack.getCount());
 		return "h:" + Integer.toHexString(h) + ":" + skyblockData.getStringOr("id", "");
+	}
+
+	/** The item's lore lines as plain text (colour codes removed). */
+	public static List<String> plain(List<Component> lines) {
+		List<String> out = new java.util.ArrayList<>(lines.size());
+		for (Component c : lines) out.add(io.github.donttemptfate.fatesflipper.core.LegacyText.strip(c.getString()));
+		return out;
+	}
+
+	public static List<Component> lore(ItemStack stack) {
+		ItemLore lore = stack.get(DataComponents.LORE);
+		return lore == null ? List.of() : lore.lines();
+	}
+
+	/** The item's own lore: without Hypixel's auction listing lines (see {@link io.github.donttemptfate.fatesflipper.core.LoreParts}). */
+	public static List<Component> ownLore(ItemStack stack) {
+		List<Component> lines = lore(stack);
+		int cut = io.github.donttemptfate.fatesflipper.core.LoreParts.listingStart(plain(lines));
+		return cut < 0 ? lines : lines.subList(0, cut);
 	}
 
 	/** Base64 of the gzipped API-layout NBT, or {@code null} if the item can't be sent. */
@@ -68,11 +90,8 @@ public final class ItemBytes {
 		CompoundTag display = new CompoundTag();
 		display.putString("Name", legacy(displayName(stack)));
 		ListTag loreTag = new ListTag();
-		ItemLore lore = stack.get(DataComponents.LORE);
-		if (lore != null) {
-			List<Component> lines = lore.lines();
-			for (int i = 0; i < lines.size() && i < MAX_LORE_LINES; i++) loreTag.add(StringTag.valueOf(legacy(lines.get(i))));
-		}
+		List<Component> lines = ownLore(stack); // never Hypixel's listing lines (seller, countdown…)
+		for (int i = 0; i < lines.size() && i < MAX_LORE_LINES; i++) loreTag.add(StringTag.valueOf(legacy(lines.get(i))));
 		display.put("Lore", loreTag);
 
 		CompoundTag tag = new CompoundTag();

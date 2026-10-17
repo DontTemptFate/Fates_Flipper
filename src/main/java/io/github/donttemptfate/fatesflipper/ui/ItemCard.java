@@ -2,6 +2,7 @@ package io.github.donttemptfate.fatesflipper.ui;
 
 import io.github.donttemptfate.fatesflipper.PriceTooltips;
 import io.github.donttemptfate.fatesflipper.core.LegacyText;
+import io.github.donttemptfate.fatesflipper.core.LoreParts;
 import io.github.donttemptfate.fatesflipper.ui.Card.Rule;
 import io.github.donttemptfate.fatesflipper.ui.Card.Stats;
 import io.github.donttemptfate.fatesflipper.ui.Card.Text;
@@ -39,9 +40,13 @@ public final class ItemCard {
 		if (name == null) name = stack.getHoverName();
 		c.add(new Text(noFakeBold(name), Role.NAME, 0, 0));
 
-		List<Component> lore = new ArrayList<>();
+		List<Component> all = new ArrayList<>();
 		ItemLore l = stack.get(DataComponents.LORE);
-		if (l != null) lore.addAll(l.lines());
+		if (l != null) all.addAll(l.lines());
+		// Hypixel's auction listing lines (Auctions Browser) get their own LISTING section
+		int cut = LoreParts.listingStart(io.github.donttemptfate.fatesflipper.ItemBytes.plain(all));
+		List<Component> lore = cut < 0 ? all : new ArrayList<>(all.subList(0, cut));
+		List<Component> listing = cut < 0 ? List.of() : all.subList(cut, all.size());
 		int rarity = rarityLine(lore);
 		List<List<Component>> blocks = blocks(lore, rarity < 0 ? lore.size() : rarity);
 		if (!blocks.isEmpty() && isSubtitle(blocks.get(0))) {
@@ -61,8 +66,26 @@ public final class ItemCard {
 			first = false;
 		}
 		if (rarity >= 0) c.space(3).add(new Text(noFakeBold(lore.get(rarity)), Role.BODY_BOLD, 0, 0));
+		addListing(c, listing);
 		Cards.fatesBlock(c, view);
 		return c;
+	}
+
+	/** Seller, price, time left…: key/value rows in one column (the countdown ticks in place); other lines as they are. */
+	static void addListing(Card c, List<Component> listing) {
+		Stats rows = new Stats(Role.SMALL).single();
+		List<Component> after = new ArrayList<>();
+		for (Component line : listing) {
+			String p = plain(line);
+			if (p.isEmpty() || LoreParts.isSeparator(p)) continue;
+			Component[] kv = splitAtColon(line);
+			if (kv != null && after.isEmpty()) rows.add(kv[0], kv[1]);
+			else after.add(line);
+		}
+		if (rows.keys.isEmpty() && after.isEmpty()) return;
+		c.space(2).add(new Rule("LISTING", Ui.GRAY, null));
+		if (!rows.keys.isEmpty()) c.add(rows);
+		for (Component line : after) c.add(new Text(line, Role.SMALL, 0, 0));
 	}
 
 	/** A short first block (1–2 short lines, no "key: value") reads as a subtitle. */
