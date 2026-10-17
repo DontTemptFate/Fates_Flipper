@@ -42,49 +42,47 @@ public final class PriceTooltips {
 	private static volatile long bytesUnsupportedUntilMs;
 	static final long UNSUPPORTED_RETRY_MS = 10 * 60_000;
 
-	static void add(FlipService service, ItemStack stack, List<Component> lines) {
-		if (!service.config().tooltips || !service.active()) return;
+	/** What the price lookup has for an item right now (the same for tooltip lines and the Fates card). */
+	public enum Kind { HIDDEN, LOADING, FOUND, NO_EXACT, NOT_TRADED }
+
+	public record View(Kind kind, JsonObject data) {
+		static final View HIDDEN = new View(Kind.HIDDEN, null);
+	}
+
+	/** Looks the item up (cached; starts a lookup when needed) and says what to show. */
+	public static View view(FlipService service, ItemStack stack) {
+		if (!service.config().tooltips || !service.active()) return View.HIDDEN;
 		CompoundTag data = ItemBytes.skyblockData(stack);
-		if (data == null) return; // not a SkyBlock item
+		if (data == null) return View.HIDDEN; // not a SkyBlock item
 		String uuid = AuctionIds.normalize(data.getStringOr("uuid", ""));
 		PriceCache prices = service.itemPrices();
 
 		PriceCache.Entry byUuid = null;
 		if (uuid != null) {
 			byUuid = prices.get("u:" + uuid, () -> service.api().priceByItem(uuid));
-			if (byUuid == null) return;
+			if (byUuid == null) return View.HIDDEN;
 			if (byUuid.state() == PriceCache.State.FOUND || (byUuid.state() == PriceCache.State.LOADING && byUuid.data() != null)) {
-				addFound(byUuid.data(), lines);
-				return;
+				return new View(Kind.FOUND, byUuid.data());
 			}
-			if (byUuid.state() == PriceCache.State.LOADING) {
-				lines.add(gray("Fates: loading price…"));
-				return;
-			}
-			if (byUuid.state() == PriceCache.State.FAILED) return; // /ff status shows connection problems
+			if (byUuid.state() == PriceCache.State.LOADING) return new View(Kind.LOADING, null);
+			if (byUuid.state() == PriceCache.State.FAILED) return View.HIDDEN; // /ff status shows connection problems
 		}
 
 		// Never traded (or no uuid): ask with the whole item, if the viewer supports it.
-		boolean bytesOk = System.currentTimeMillis() >= bytesUnsupportedUntilMs;
-		if (bytesOk) {
+		if (System.currentTimeMillis() >= bytesUnsupportedUntilMs) {
 			String key = uuid != null ? "b:" + uuid : ItemBytes.cacheKey(stack, data);
 			// built only when a lookup actually starts (on this thread, before the method returns)
 			PriceCache.Entry byItem = prices.get(key, () -> service.api().priceByItemBytes(ItemBytes.build(stack)));
 			if (byItem != null) {
 				switch (byItem.state()) {
 					case FOUND -> {
-						addFound(byItem.data(), lines);
-						return;
+						return new View(Kind.FOUND, byItem.data());
 					}
 					case LOADING -> {
-						if (byItem.data() != null) addFound(byItem.data(), lines);
-						else lines.add(gray("Fates: loading price…"));
-						return;
+						return byItem.data() != null ? new View(Kind.FOUND, byItem.data()) : new View(Kind.LOADING, null);
 					}
 					case NOT_FOUND -> {
-						if (addRough(byItem.data(), lines)) return;
-						lines.add(gray("Fates: no sales of this exact item yet"));
-						return;
+						return new View(Kind.NO_EXACT, byItem.data());
 					}
 					case FAILED -> {
 						if (byItem.httpCode() == 404 || byItem.httpCode() == 405) {
@@ -94,9 +92,23 @@ public final class PriceTooltips {
 				}
 			}
 		}
-		if (byUuid != null && byUuid.state() == PriceCache.State.NOT_FOUND) {
-			if (addRough(byUuid.data(), lines)) return;
-			lines.add(gray("Fates: not traded on the AH since tracking started"));
+		if (byUuid != null && byUuid.state() == PriceCache.State.NOT_FOUND) return new View(Kind.NOT_TRADED, byUuid.data());
+		return View.HIDDEN;
+	}
+
+	static void add(FlipService service, ItemStack stack, List<Component> lines) {
+		View v = view(service, stack);
+		switch (v.kind()) {
+			case HIDDEN -> {
+			}
+			case LOADING -> lines.add(gray("Fates: loading price…"));
+			case FOUND -> addFound(v.data(), lines);
+			case NO_EXACT -> {
+				if (!addRough(v.data(), lines)) lines.add(gray("Fates: no sales of this exact item yet"));
+			}
+			case NOT_TRADED -> {
+				if (!addRough(v.data(), lines)) lines.add(gray("Fates: not traded on the AH since tracking started"));
+			}
 		}
 	}
 

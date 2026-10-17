@@ -58,6 +58,7 @@ public final class FlipService implements FlipStream.Listener {
 	public FlipService(Minecraft mc, ModConfig config, String version) {
 		this.mc = mc;
 		this.config = config;
+		io.github.donttemptfate.fatesflipper.ui.Ui.useChakra(config.chakraFont);
 		this.api = new ViewerApi(() -> this.config, version);
 		this.stream = new FlipStream(api, this, this::streamAllowed);
 		this.itemPrices = new PriceCache(api::priceByItem, System::currentTimeMillis, 3);
@@ -81,6 +82,7 @@ public final class FlipService implements FlipStream.Listener {
 	public void applyConfig(ModConfig next) {
 		ModConfig prev = this.config;
 		this.config = next;
+		io.github.donttemptfate.fatesflipper.ui.Ui.useChakra(next.chakraFont);
 		try {
 			next.save();
 		} catch (Exception e) {

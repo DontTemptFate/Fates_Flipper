@@ -3,7 +3,9 @@
 	"package": "io.github.donttemptfate.fatesflipper.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"AbstractContainerScreenAccessor"
+		"AbstractContainerScreenAccessor",
+		"AbstractContainerScreenMixin",
+		"GuiGraphicsExtractorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
