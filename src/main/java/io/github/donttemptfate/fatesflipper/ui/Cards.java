@@ -63,7 +63,13 @@ public final class Cards {
 	/** Panel beside Hypixel's auction view / confirm window (design 2.1). */
 	public static Card auctionPanel(FlipEvent f, JsonObject price, boolean confirm, ButtonState state, String buttonName,
 			boolean cursorAssist, boolean closeKey) {
-		Card c = new Card(0.80f, 150, 196).gap(4);
+		return auctionPanel(f, price, confirm, state, buttonName, cursorAssist, closeKey, false);
+	}
+
+	/** {@code compact}: for small screens, only the essentials (no sales strip, two numbers). */
+	public static Card auctionPanel(FlipEvent f, JsonObject price, boolean confirm, ButtonState state, String buttonName,
+			boolean cursorAssist, boolean closeKey, boolean compact) {
+		Card c = new Card(0.80f, compact ? 110 : 150, compact ? 140 : 196).gap(compact ? 3 : 4);
 		String listed = f != null && f.firstSeenAt() > 0 ? "BIN · LISTED " + up(Coins.age(System.currentTimeMillis() - f.firstSeenAt())) : "BIN";
 		c.add(new Line(List.of(seg("FATES FLIPPER", Role.LABEL, Ui.PINK)), List.of(seg(listed, Role.LABEL, Ui.GRAY))));
 		if (f != null) {
@@ -75,6 +81,16 @@ public final class Cards {
 						f.safeProfit() >= 0 ? Ui.BOX_GREEN : Ui.BOX_RED, List.of(seg("PROFIT", Role.LABEL, Ui.GRAY))));
 			}
 			if (f.dupe() != null) c.add(Line.of(seg("DUPED?! · " + up(f.dupe()), Role.VALUE, Ui.RED)));
+			if (compact) {
+				Grid g2 = new Grid(2);
+				g2.cell("PRICE", seg(Coins.format(f.price()), Role.VALUE, Ui.GOLD));
+				if (!Double.isNaN(f.resale())) g2.cell("RESALE", seg(Coins.format(f.resale()), Role.VALUE, Ui.GOLD));
+				c.add(g2);
+				c.add(Line.of(seg(f.confidence() == null ? "?" : up(f.confidence()), Role.BODY_BOLD, confColor(f.confidence())),
+						seg(f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : "", Role.SMALL, Ui.GRAY)));
+				c.space(1).add(status(confirm, state, buttonName, cursorAssist, closeKey));
+				return c;
+			}
 			c.add(new Rule("FLIP", Ui.GRAY, null));
 			Grid grid = new Grid(2);
 			grid.cell("PRICE", seg(Coins.format(f.price()), Role.VALUE, Ui.GOLD));

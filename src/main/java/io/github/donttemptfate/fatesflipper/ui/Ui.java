@@ -45,14 +45,14 @@ public final class Ui {
 
 	/** Text sizes (Chakra Petch) — one font file per size, see assets/fatesflipper/font. */
 	public enum Role {
-		LABEL("ui_label", 6.0f),
-		SMALL("ui_small", 7.0f),
-		BODY("ui_body", 7.5f),
-		BODY_BOLD("ui_body_bold", 7.5f),
-		VALUE("ui_value", 8.0f),
+		LABEL("ui_label", 6.5f),
+		SMALL("ui_small", 7.5f),
+		BODY("ui_body", 8.0f),
+		BODY_BOLD("ui_body_bold", 8.0f),
+		VALUE("ui_value", 8.5f),
 		TAG("ui_tag", 7.0f),
-		NAME("ui_name", 8.5f),
-		TITLE("ui_title", 9.5f),
+		NAME("ui_name", 9.0f),
+		TITLE("ui_title", 10.0f),
 		HERO_S("ui_hero_s", 13.0f),
 		HERO_M("ui_hero_m", 14.0f),
 		HERO_L("ui_hero_l", 16.0f);
@@ -86,7 +86,7 @@ public final class Ui {
 	}
 
 	/** Cap height and descender of Chakra Petch as a share of the font size. */
-	static final float CAP = 0.70f;
+	static final float CAP = 0.72f;
 	static final float DESC = 0.28f;
 	/**
 	 * Where the baseline sits below the y a line of text is drawn at, as share of the font size
@@ -96,8 +96,8 @@ public final class Ui {
 		return chakra() ? BASELINE_K * r.size + BASELINE_C : 7f * r.vanillaScale();
 	}
 
-	static float BASELINE_K = 0.70f;
-	static float BASELINE_C = 0f;
+	static float BASELINE_K = 0f;
+	static float BASELINE_C = 7f; // measured in game: TrueType glyphs sit on y + 7 like the bitmap font
 
 	// ---- font choice -----------------------------------------------------------------------------
 	private static volatile boolean chakra = true;

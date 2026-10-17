@@ -44,6 +44,16 @@ public final class ItemCard {
 		if (l != null) lore.addAll(l.lines());
 		int rarity = rarityLine(lore);
 		List<List<Component>> blocks = blocks(lore, rarity < 0 ? lore.size() : rarity);
+		if (!blocks.isEmpty() && isSubtitle(blocks.get(0))) {
+			// "Efficiency V · Farming Tool": a short first block under the name
+			MutableComponent sub = Component.empty();
+			List<Component> b0 = blocks.remove(0);
+			for (int i = 0; i < b0.size(); i++) {
+				if (i > 0) sub.append(Component.literal(" · ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+				sub.append(Component.literal(plain(b0.get(i))).withStyle(net.minecraft.ChatFormatting.GRAY));
+			}
+			c.add(new Text(sub, Role.SMALL, 0, 0));
+		}
 		boolean first = true;
 		for (List<Component> b : blocks) {
 			if (!first) c.space(3);
@@ -53,6 +63,16 @@ public final class ItemCard {
 		if (rarity >= 0) c.space(3).add(new Text(noFakeBold(lore.get(rarity)), Role.BODY_BOLD, 0, 0));
 		Cards.fatesBlock(c, view);
 		return c;
+	}
+
+	/** A short first block (1–2 short lines, no "key: value") reads as a subtitle. */
+	static boolean isSubtitle(List<Component> b) {
+		if (b.size() > 2) return false;
+		for (Component line : b) {
+			String p = plain(line);
+			if (p.length() > 28 || p.contains(":") || p.endsWith("!") || p.endsWith(".")) return false;
+		}
+		return true;
 	}
 
 	static String plain(Component c) {

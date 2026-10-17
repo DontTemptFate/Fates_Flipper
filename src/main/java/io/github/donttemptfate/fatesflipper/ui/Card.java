@@ -21,6 +21,7 @@ public final class Card {
 	private final int minW;
 	private final int maxW;
 	private int gap = 3;
+	private int pending;
 
 	public Card(float alpha, int minW, int maxW) {
 		this.alpha = alpha;
@@ -35,14 +36,15 @@ public final class Card {
 	}
 
 	public Card add(El el) {
-		gaps.add(rows.isEmpty() ? 0 : gap);
+		gaps.add(rows.isEmpty() ? 0 : gap + pending);
+		pending = 0;
 		rows.add(el);
 		return this;
 	}
 
-	/** Extra space before the last row (on top of the normal gap). */
+	/** Extra space before the next row added (on top of the normal gap). */
 	public Card space(int px) {
-		if (!gaps.isEmpty()) gaps.set(gaps.size() - 1, gaps.get(gaps.size() - 1) + px);
+		pending += px;
 		return this;
 	}
 

@@ -174,6 +174,8 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.takeScreenshot("07_item_tooltip_live");
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 			// 4g. chat: open it and hover the newest alert line (best effort: position depends on the chat layout)
+			ctx.runOnClient(mc -> io.github.donttemptfate.fatesflipper.Alerts.show(service, galleryFlip));
+			ctx.waitTicks(2);
 			ctx.runOnClient(mc -> mc.gui.setScreen(new net.minecraft.client.gui.screens.ChatScreen("", false)));
 			ctx.waitTicks(5);
 			double[] chatAt = ctx.computeOnClient(mc -> {
