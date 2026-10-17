@@ -202,9 +202,9 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ItemStack filler = new ItemStack(Items.GLASS_PANE);
 			filler.set(DataComponents.CUSTOM_NAME, Component.literal(" "));
 			for (int i = 0; i < box.getContainerSize(); i++) box.setItem(i, filler.copy());
-			box.setItem(11, named(Items.GREEN_TERRACOTTA, "Confirm"));
+			box.setItem(11, named(Items.EMERALD, "Confirm"));
 			box.setItem(13, named(Items.BOW, "Juju Shortbow"));
-			box.setItem(15, named(Items.RED_TERRACOTTA, "Cancel"));
+			box.setItem(15, named(Items.BARRIER, "Cancel"));
 		}
 		ChestMenu menu = confirm
 				? ChestMenu.threeRows(0, mc.player.getInventory(), box)
