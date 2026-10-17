@@ -96,9 +96,8 @@ public final class Cards {
 			grid.cell("PRICE", seg(Coins.format(f.price()), Role.VALUE, Ui.GOLD));
 			if (!Double.isNaN(f.resale())) grid.cell("RESALE", seg(Coins.format(f.resale()), Role.VALUE, Ui.GOLD));
 			String conf = f.confidence() == null ? "?" : up(f.confidence());
-			grid.cell(f.confReason() != null ? "CONFIDENCE · " + up(f.confReason()) : "CONFIDENCE",
-					seg(conf, Role.VALUE, confColor(f.confidence())),
-					seg(f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : "", Role.SMALL, Ui.GRAY));
+			String confNote = f.confReason() != null ? " · " + f.confReason() : f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : "";
+			grid.cell("CONFIDENCE", seg(conf, Role.VALUE, confColor(f.confidence())), seg(confNote, Role.SMALL, Ui.GRAY));
 			String lastSale = lastSaleAge(price);
 			if (!Double.isNaN(f.volumePerDay())) {
 				grid.cell("VOLUME", seg(String.format(Locale.ROOT, "%.0f/day", f.volumePerDay()), Role.VALUE, Ui.WHITE),
@@ -108,7 +107,7 @@ public final class Cards {
 		}
 		SalesStrip strip = sales(price);
 		if (strip != null) {
-			c.add(new Rule("RECENT SALES", Ui.GRAY, null));
+			c.add(new Rule("RECENT SALES", Ui.GRAY, f != null && f.salesUsed() > 0 ? f.salesUsed() + " USED" : null));
 			c.add(strip);
 		}
 		c.space(1).add(status(confirm, state, buttonName, cursorAssist, closeKey));
