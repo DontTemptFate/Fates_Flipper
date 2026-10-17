@@ -358,12 +358,17 @@ public final class AuctionOverlay {
 		var card = io.github.donttemptfate.fatesflipper.ui.Cards.auctionPanel(state.opened.flip(), service.lastOpenedPrice(),
 				state.kind == Kind.CONFIRM, bs, target == null ? "" : name(target.getItem()),
 				service.config().cursorAssist, service.config().pressAgainToClose);
-		int w = card.width();
-		int h = card.height();
 		int spaceRight = screen.width - (left + imageWidth) - 8;
 		int spaceLeft = left - 8;
 		boolean right = spaceRight >= spaceLeft;
 		int avail = right ? spaceRight : spaceLeft;
+		if ((float) avail / card.width() < 0.8f) {
+			card = io.github.donttemptfate.fatesflipper.ui.Cards.auctionPanel(state.opened.flip(), service.lastOpenedPrice(),
+					state.kind == Kind.CONFIRM, bs, target == null ? "" : name(target.getItem()),
+					service.config().cursorAssist, service.config().pressAgainToClose, true);
+		}
+		int w = card.width();
+		int h = card.height();
 		float scale = Math.min(1f, Math.min((float) avail / w, (screen.height - 8f) / h));
 		if (scale < 0.45f) return; // no room beside the window: show nothing rather than cover it
 		int sw = Math.round(w * scale);
