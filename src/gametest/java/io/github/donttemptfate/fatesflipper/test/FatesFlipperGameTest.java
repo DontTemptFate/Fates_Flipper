@@ -1,5 +1,6 @@
 package io.github.donttemptfate.fatesflipper.test;
 
+import io.github.donttemptfate.fatesflipper.AuctionOverlay;
 import io.github.donttemptfate.fatesflipper.ConfigScreen;
 import io.github.donttemptfate.fatesflipper.FatesFlipperClient;
 import io.github.donttemptfate.fatesflipper.FlipService;
@@ -109,12 +110,38 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.waitFor(mc -> service.lastOpenedPrice() != null, 400);
 
 			// 4. auction overlay on a window titled like Hypixel's
-			ctx.runOnClient(mc -> mc.gui.setScreen(auctionWindow(mc, "BIN Auction View", false)));
+			// 4a. a different auction (wrong price) opened right after the flip gets nothing
+			SimpleContainer wrongBox = auctionBox(5_454_545_454L, "Click to purchase!");
+			ctx.runOnClient(mc -> mc.gui.setScreen(auctionWindow(mc, wrongBox, "BIN Auction View", false)));
 			ctx.waitTicks(20);
+			check(Boolean.FALSE.equals(ctx.computeOnClient(mc -> AuctionOverlay.debugMatch(mc.gui.screen()))),
+					"overlay attached to an auction that isn't the flip");
+			ctx.takeScreenshot("02a_other_auction_untouched");
+			// 4b. the flip's own window: matched by the price on the button, Buy outlined green
+			SimpleContainer box = auctionBox(30_000_000L, "Click to purchase!");
+			ctx.runOnClient(mc -> mc.gui.setScreen(auctionWindow(mc, box, "BIN Auction View", false)));
+			ctx.waitTicks(20);
+			check(Boolean.TRUE.equals(ctx.computeOnClient(mc -> AuctionOverlay.debugMatch(mc.gui.screen()))),
+					"overlay didn't attach to the flip's own auction");
 			ctx.takeScreenshot("02_auction_view_overlay");
-			ctx.runOnClient(mc -> mc.gui.setScreen(auctionWindow(mc, "Confirm Purchase", true)));
+			// 4c. the button turns into "Collect Auction" (sold): red, live
+			ctx.runOnClient(mc -> box.setItem(31, named(Items.POTATO, "Collect Auction", "", "Someone else purchased the item!")));
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("02c_auction_sold");
+			ctx.runOnClient(mc -> box.setItem(31, named(Items.GOLD_NUGGET, "Buy Item Right Now", "", "Price: 30,000,000 coins", "", "Cannot afford bid!")));
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("02d_auction_cant_afford");
+			ctx.runOnClient(mc -> box.setItem(31, named(Items.GOLD_NUGGET, "Buy Item Right Now", "", "Price: 30,000,000 coins", "", "Click to purchase!")));
+			ctx.runOnClient(mc -> mc.gui.setScreen(auctionWindow(mc, new SimpleContainer(27), "Confirm Purchase", true)));
 			ctx.waitTicks(20);
+			check(Boolean.TRUE.equals(ctx.computeOnClient(mc -> AuctionOverlay.debugMatch(mc.gui.screen()))),
+					"confirm window of the flip wasn't recognised");
 			ctx.takeScreenshot("03_confirm_overlay");
+			// 4d. pressing the open key again closes the flip's window (like Esc)
+			ctx.waitTicks(12); // past the half-second key cooldown
+			ctx.runOnClient(mc -> service.closeFlipWindow(mc.gui.screen()));
+			ctx.waitTicks(5);
+			check(ctx.computeOnClient(mc -> mc.gui.screen() == null), "the close key didn't close the flip's window");
 			ctx.runOnClient(mc -> mc.gui.setScreen(null));
 
 			// 5. settings screen
@@ -158,18 +185,26 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 		return stack.getTooltipLines(Item.TooltipContext.EMPTY, mc.player, TooltipFlag.NORMAL).stream().map(Component::getString).toList();
 	}
 
-	private static ContainerScreen auctionWindow(Minecraft mc, String title, boolean confirm) {
-		SimpleContainer box = new SimpleContainer(confirm ? 27 : 54);
+	/** A 54-slot "BIN Auction View" like Hypixel's: filler, the item in slot 13, the button in slot 31. */
+	private static SimpleContainer auctionBox(long price, String lastLine) {
+		SimpleContainer box = new SimpleContainer(54);
 		ItemStack filler = new ItemStack(Items.GLASS_PANE);
 		filler.set(DataComponents.CUSTOM_NAME, Component.literal(" "));
-		for (int i = 0; i < box.getContainerSize(); i++) box.setItem(i, filler.copy());
+		for (int i = 0; i < 54; i++) box.setItem(i, filler.copy());
+		box.setItem(13, named(Items.BOW, "Juju Shortbow"));
+		box.setItem(31, named(Items.GOLD_NUGGET, "Buy Item Right Now", "", "Price: " + String.format(java.util.Locale.ROOT, "%,d", price) + " coins", "", lastLine));
+		box.setItem(49, named(Items.BARRIER, "Close"));
+		return box;
+	}
+
+	private static ContainerScreen auctionWindow(Minecraft mc, SimpleContainer box, String title, boolean confirm) {
 		if (confirm) {
-			box.setItem(11, named(Items.EMERALD, "Confirm"));
-			box.setItem(15, named(Items.BARRIER, "Cancel"));
-		} else {
+			ItemStack filler = new ItemStack(Items.GLASS_PANE);
+			filler.set(DataComponents.CUSTOM_NAME, Component.literal(" "));
+			for (int i = 0; i < box.getContainerSize(); i++) box.setItem(i, filler.copy());
+			box.setItem(11, named(Items.GREEN_TERRACOTTA, "Confirm"));
 			box.setItem(13, named(Items.BOW, "Juju Shortbow"));
-			box.setItem(31, named(Items.GOLD_NUGGET, "Buy Item Right Now"));
-			box.setItem(49, named(Items.BARRIER, "Close"));
+			box.setItem(15, named(Items.RED_TERRACOTTA, "Cancel"));
 		}
 		ChestMenu menu = confirm
 				? ChestMenu.threeRows(0, mc.player.getInventory(), box)
@@ -177,9 +212,14 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 		return new ContainerScreen(menu, mc.player.getInventory(), Component.literal(title));
 	}
 
-	private static ItemStack named(net.minecraft.world.item.Item item, String name) {
+	private static ItemStack named(net.minecraft.world.item.Item item, String name, String... lore) {
 		ItemStack s = new ItemStack(item);
 		s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+		if (lore.length > 0) {
+			List<Component> lines = new java.util.ArrayList<>();
+			for (String l : lore) lines.add(Component.literal(l));
+			s.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lines));
+		}
 		return s;
 	}
 

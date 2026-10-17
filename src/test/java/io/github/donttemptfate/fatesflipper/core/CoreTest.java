@@ -270,4 +270,39 @@ public class CoreTest {
 		java.nio.file.Files.writeString(f, "{not json");
 		assertFalse(ModConfig.load(f).isReady()); // broken file falls back to defaults
 	}
+
+	@Test
+	public void auctionWindowButtons() {
+		// as seen in game on 26.3 (2026-10-17)
+		assertEquals(AuctionWindow.ButtonState.BUYABLE, AuctionWindow.classify("Buy Item Right Now",
+				List.of("", "Price: 499,999 coins", "", "Click to purchase!")));
+		assertEquals(AuctionWindow.ButtonState.CANT_AFFORD, AuctionWindow.classify("Buy Item Right Now",
+				List.of("", "Price: 5,454,545,454 coins", "", "Cannot afford bid!")));
+		assertEquals(AuctionWindow.ButtonState.SOLD, AuctionWindow.classify("Collect Auction",
+				List.of("", "Someone else purchased the item!")));
+		assertEquals(AuctionWindow.ButtonState.SOLD, AuctionWindow.classify("§6Collect Auction", List.of()));
+		assertEquals(AuctionWindow.ButtonState.NOT_YET, AuctionWindow.classify("Buy Item Right Now", List.of("Price: 10 coins", "Can be bought in 5s")));
+		assertEquals(AuctionWindow.ButtonState.UNKNOWN, AuctionWindow.classify("Something New", List.of()));
+		assertTrue(AuctionWindow.isButtonName("Buy Item Right Now"));
+		assertTrue(AuctionWindow.isButtonName("Collect Auction"));
+		assertFalse(AuctionWindow.isButtonName("Close"));
+	}
+
+	@Test
+	public void auctionWindowPriceAndMatch() {
+		assertEquals(499_999L, AuctionWindow.price(List.of("", "Price: 499,999 coins", "Click to purchase!")));
+		assertEquals(5_454_545_454L, AuctionWindow.price(List.of("Price: 5,454,545,454 coins")));
+		assertEquals(-1L, AuctionWindow.price(List.of("Someone else purchased the item!")));
+		assertEquals(-1L, AuctionWindow.price(null));
+		// the price decides when it's on the button
+		assertEquals(Boolean.TRUE, AuctionWindow.matches(499_999, "Candy the Fish", 499_999, "Candy the Fish"));
+		assertEquals(Boolean.FALSE, AuctionWindow.matches(1_450_000, "Water Hydra Head", 5_454_545_454L, "Water Hydra Head"));
+		// sold: no price on the button, so the item's name decides
+		assertEquals(Boolean.TRUE, AuctionWindow.matches(300_000, "Candy the Fish", -1, "Candy the Fish"));
+		assertEquals(Boolean.TRUE, AuctionWindow.matches(1e9, "Heroic Hyperion", -1, "§d✪✪✪ Heroic Hyperion §6✪"));
+		assertEquals(Boolean.FALSE, AuctionWindow.matches(1e6, "Spooky Hook", -1, "Titanium Cloak"));
+		// not filled in yet
+		assertNull(AuctionWindow.matches(1e6, "Spooky Hook", -1, ""));
+		assertEquals("heroic hyperion", AuctionWindow.normalize("✪✪ Heroic  Hyperion ✪"));
+	}
 }

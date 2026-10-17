@@ -31,8 +31,8 @@ public final class Keys {
 	 * (or from holding the key) are thrown away.
 	 */
 	public static void tick(Minecraft mc, FlipService service) {
-		if (pressedOnce(openBest)) service.openNext("best");
-		if (pressedOnce(openSafest)) service.openNext("safest");
+		if (pressedOnce(openBest) && service.keyActionAllowed()) service.openNext("best");
+		if (pressedOnce(openSafest) && service.keyActionAllowed()) service.openNext("safest");
 		if (pressedOnce(openSettings)) mc.gui.setScreen(new ConfigScreen(mc.gui.screen(), service));
 	}
 

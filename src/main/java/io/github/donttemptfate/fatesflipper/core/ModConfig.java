@@ -37,6 +37,8 @@ public final class ModConfig {
 	 * a flip. Off by default; the player turns it on knowingly.
 	 */
 	public boolean cursorAssist = false;
+	/** Pressing an open-flip key again inside that flip's auction window closes it (like Esc). */
+	public boolean pressAgainToClose = true;
 	/** Only connect while on Hypixel. */
 	public boolean onlyOnHypixel = true;
 

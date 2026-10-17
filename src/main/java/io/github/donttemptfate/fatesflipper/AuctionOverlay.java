@@ -3,12 +3,20 @@ package io.github.donttemptfate.fatesflipper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.github.donttemptfate.fatesflipper.core.AuctionWindow;
+import io.github.donttemptfate.fatesflipper.core.AuctionWindow.ButtonState;
 import io.github.donttemptfate.fatesflipper.core.Coins;
 import io.github.donttemptfate.fatesflipper.core.FlipEvent;
 import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.LegacyText;
 import io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -59,6 +67,13 @@ public final class AuctionOverlay {
 	/** The opened auction whose auction view / confirm window has already been used. */
 	private static FlipService.Opened viewUsedFor;
 	private static FlipService.Opened confirmUsedFor;
+	/** The most recent auction view window, flip or not: a confirm window belongs to it. */
+	private static State lastView;
+
+	/** A window that isn't the opened flip's has no outline, panel, cursor assist or close key. */
+	static final long DECIDE_WITHIN_MS = 3_000;
+	/** Confirm must follow the flip's auction view within this time. */
+	static final long CONFIRM_WITHIN_MS = 20_000;
 
 	public static void register(FlipService service) {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
@@ -67,24 +82,15 @@ public final class AuctionOverlay {
 			if (state == null) {
 				Kind kind = kindOf(screen);
 				if (kind == null) return;
-				FlipService.Opened opened = service.lastOpened();
-				if (opened == null) return; // only auctions opened from a flip
-				// Attach to exactly one auction view and one confirm window per opened auction, so a
-				// different auction opened by hand afterwards never gets this flip's panel or cursor.
-				if (kind == Kind.AUCTION_VIEW) {
-					if (opened == viewUsedFor) return;
-					viewUsedFor = opened;
-				} else {
-					if (opened != viewUsedFor || opened == confirmUsedFor) return;
-					confirmUsedFor = opened;
-				}
-				state = new State(kind, opened, System.currentTimeMillis(), client.mouseHandler.xpos(), client.mouseHandler.ypos());
+				state = newState(service, kind, client);
 				STATES.put(screen, state);
 			}
+			if (state.opened == null) return; // not a flip window: leave it completely alone
 			State st = state;
 			ScreenEvents.afterExtract(screen).register((s, g, mx, my, delta) -> {
-				if (!service.config().auctionOverlay) return;
 				try {
+					decide(acs, st);
+					if (st.match != Boolean.TRUE || !service.config().auctionOverlay) return;
 					draw(service, acs, st, g, client.font);
 				} catch (RuntimeException e) {
 					// drawing must never crash the game
@@ -92,12 +98,97 @@ public final class AuctionOverlay {
 			});
 			ScreenEvents.afterTick(screen).register(s -> {
 				try {
-					cursorAssist(service, client, acs, st);
+					decide(acs, st);
+					if (st.match == Boolean.TRUE) cursorAssist(service, client, acs, st);
 				} catch (RuntimeException e) {
 					st.cursorDone = true;
 				}
 			});
+			// Press an open-flip key again to close this flip's window (like Esc). One press, one action.
+			ScreenKeyboardEvents.allowKeyPress(screen).register((s, event) -> {
+				try {
+					if (st.match != Boolean.TRUE || !service.config().pressAgainToClose) return true;
+					if (!matches(Keys.openBest, event) && !matches(Keys.openSafest, event)) return true;
+					service.closeFlipWindow(s);
+					return false;
+				} catch (RuntimeException e) {
+					return true;
+				}
+			});
+			ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> {
+				try {
+					if (event.button() <= 1) return true; // left / right clicks are always the player's own
+					if (st.match != Boolean.TRUE || !service.config().pressAgainToClose) return true;
+					if (!matchesMouse(Keys.openBest, event) && !matchesMouse(Keys.openSafest, event)) return true;
+					service.closeFlipWindow(s);
+					return false;
+				} catch (RuntimeException e) {
+					return true;
+				}
+			});
 		});
+	}
+
+	private static boolean matches(KeyMapping key, net.minecraft.client.input.KeyEvent event) {
+		return key != null && !key.isUnbound() && key.matches(event);
+	}
+
+	private static boolean matchesMouse(KeyMapping key, net.minecraft.client.input.MouseButtonEvent event) {
+		return key != null && !key.isUnbound() && key.matchesMouse(event);
+	}
+
+	/**
+	 * A new window: a candidate when it may be the flip just opened (checked against the flip in
+	 * {@link #decide} once Hypixel has filled it in), otherwise a "foreign" state that does nothing.
+	 */
+	private static State newState(FlipService service, Kind kind, Minecraft client) {
+		long now = System.currentTimeMillis();
+		double mx = client.mouseHandler.xpos();
+		double my = client.mouseHandler.ypos();
+		FlipService.Opened opened = service.lastOpened();
+		if (kind == Kind.AUCTION_VIEW) {
+			State st = opened == null || opened.flip() == null || opened == viewUsedFor
+					? State.foreign(kind, now, mx, my)
+					: new State(kind, opened, now, mx, my);
+			lastView = st;
+			return st;
+		}
+		State view = lastView;
+		if (opened != null && view != null && view.opened == opened && view.match == Boolean.TRUE
+				&& opened != confirmUsedFor && now - view.matchedAtMs <= CONFIRM_WITHIN_MS) {
+			confirmUsedFor = opened;
+			State st = new State(kind, opened, now, mx, my);
+			st.match = Boolean.TRUE;
+			st.matchedAtMs = now;
+			return st;
+		}
+		return State.foreign(kind, now, mx, my);
+	}
+
+	/** Decides once whether an auction view is the flip that was opened (price on the button, else the item's name). */
+	static void decide(AbstractContainerScreen<?> screen, State state) {
+		if (state.match != null || state.opened == null) return;
+		FlipEvent f = state.opened.flip();
+		Slot button = button(screen);
+		long price = button == null ? -1 : AuctionWindow.price(lore(button.getItem()));
+		Slot item = itemSlot(screen);
+		Boolean m = f == null ? Boolean.FALSE : AuctionWindow.matches(f.price(), f.name(), price, item == null ? "" : name(item.getItem()));
+		long now = System.currentTimeMillis();
+		if (m == null && now - state.openedScreenAtMs > DECIDE_WITHIN_MS) m = Boolean.FALSE;
+		if (m == null) return;
+		state.match = m;
+		if (m) {
+			state.matchedAtMs = now;
+			viewUsedFor = state.opened;
+		} else {
+			FatesFlipperClient.LOG.info("(Fates Flipper) auction window isn't the opened flip {}; leaving it alone", state.opened.auctionId());
+		}
+	}
+
+	/** For the in-game test: TRUE when this window was recognised as the opened flip's. */
+	public static Boolean debugMatch(Screen screen) {
+		State st = screen == null ? null : STATES.get(screen);
+		return st == null ? null : st.match;
 	}
 
 	static Kind kindOf(Screen screen) {
@@ -109,11 +200,15 @@ public final class AuctionOverlay {
 
 	static final class State {
 		final Kind kind;
+		/** The flip this window may belong to; null = not a flip window. */
 		final FlipService.Opened opened;
 		final long openedScreenAtMs;
 		final double mouseX0;
 		final double mouseY0;
 		boolean cursorDone;
+		/** null until decided; TRUE = this is the opened flip's window. */
+		Boolean match;
+		long matchedAtMs;
 
 		State(Kind kind, FlipService.Opened opened, long at, double mx, double my) {
 			this.kind = kind;
@@ -121,6 +216,13 @@ public final class AuctionOverlay {
 			this.openedScreenAtMs = at;
 			this.mouseX0 = mx;
 			this.mouseY0 = my;
+		}
+
+		static State foreign(Kind kind, long at, double mx, double my) {
+			State s = new State(kind, null, at, mx, my);
+			s.match = Boolean.FALSE;
+			s.cursorDone = true;
+			return s;
 		}
 	}
 
@@ -141,14 +243,39 @@ public final class AuctionOverlay {
 		return !stack.isEmpty() && name(stack).isEmpty();
 	}
 
-	/** The button to highlight: "Buy Item Right Now" in the auction view, "Confirm" in the confirm window. */
-	static Slot target(AbstractContainerScreen<?> screen, Kind kind) {
-		for (Slot slot : containerSlots(screen)) {
-			String n = name(slot.getItem()).toLowerCase(Locale.ROOT);
-			if (kind == Kind.AUCTION_VIEW && n.startsWith("buy item")) return slot;
-			if (kind == Kind.CONFIRM && n.startsWith("confirm")) return slot;
+	/** The item's own lore lines as plain text. */
+	static List<String> lore(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) return List.of();
+		ItemLore lore = stack.get(DataComponents.LORE);
+		if (lore == null) return List.of();
+		List<String> out = new ArrayList<>();
+		for (Component c : lore.lines()) out.add(LegacyText.strip(c.getString()).trim());
+		return out;
+	}
+
+	/** The auction view's middle button ("Buy Item Right Now" / "Collect Auction"), else slot 31 if it isn't filler. */
+	static Slot button(AbstractContainerScreen<?> screen) {
+		List<Slot> slots = containerSlots(screen);
+		for (Slot slot : slots) {
+			if (AuctionWindow.isButtonName(name(slot.getItem()))) return slot;
+		}
+		if (slots.size() > 31) {
+			ItemStack s = slots.get(31).getItem();
+			if (!s.isEmpty() && !isFiller(s)) return slots.get(31);
 		}
 		return null;
+	}
+
+	/** The Confirm button in the confirm window. */
+	static Slot confirmButton(AbstractContainerScreen<?> screen) {
+		for (Slot slot : containerSlots(screen)) {
+			if (name(slot.getItem()).toLowerCase(Locale.ROOT).startsWith("confirm")) return slot;
+		}
+		return null;
+	}
+
+	static ButtonState buttonState(Slot button) {
+		return button == null ? null : AuctionWindow.classify(name(button.getItem()), lore(button.getItem()));
 	}
 
 	/** The item for sale: top centre of the auction view (slot 13). */
@@ -162,6 +289,10 @@ public final class AuctionOverlay {
 
 	private static final int GOLD = 0xFFFFC23D;
 	private static final int GREEN = 0xFF55FF77;
+	private static final int ORANGE = 0xFFFFA040;
+	private static final int RED = 0xFFFF5555;
+	private static final int YELLOW = 0xFFFFE066;
+	private static final int GREY = 0xFFAAAAAA;
 	private static final int DIM = 0xA0000000;
 
 	static void draw(FlipService service, AbstractContainerScreen<?> screen, State state, GuiGraphicsExtractor g, Font font) {
@@ -169,16 +300,40 @@ public final class AuctionOverlay {
 		int left = acc.fatesflipper$getLeftPos();
 		int top = acc.fatesflipper$getTopPos();
 
-		Slot target = target(screen, state.kind);
+		Slot target = state.kind == Kind.AUCTION_VIEW ? button(screen) : confirmButton(screen);
+		ButtonState bs = state.kind == Kind.AUCTION_VIEW ? buttonState(target) : null;
 		Slot item = state.kind == Kind.AUCTION_VIEW ? itemSlot(screen) : null;
 		for (Slot slot : containerSlots(screen)) {
 			if (slot == target || slot == item) continue;
 			if (isFiller(slot.getItem())) g.fill(left + slot.x, top + slot.y, left + slot.x + 16, top + slot.y + 16, DIM);
 		}
 		if (item != null) box(g, left + item.x, top + item.y, GOLD);
-		if (target != null) box(g, left + target.x, top + target.y, GREEN);
+		if (target != null) box(g, left + target.x, top + target.y, state.kind == Kind.CONFIRM ? GREEN : color(bs));
 
-		panel(service, screen, state, g, font, left, top, acc.fatesflipper$getImageWidth(), target);
+		panel(service, screen, state, g, font, left, top, acc.fatesflipper$getImageWidth(), target, bs);
+	}
+
+	static int color(ButtonState bs) {
+		if (bs == null) return GREY;
+		return switch (bs) {
+			case BUYABLE -> GREEN;
+			case CANT_AFFORD -> ORANGE;
+			case SOLD -> RED;
+			case NOT_YET, UNKNOWN -> YELLOW;
+		};
+	}
+
+	/** The panel's last line: what the button means, in words (not only colour). */
+	static String stateText(ButtonState bs, Slot button, boolean closeKey) {
+		if (bs == null) return "Waiting for the button…";
+		String close = closeKey ? " · key closes" : "";
+		return switch (bs) {
+			case BUYABLE -> "Buy now";
+			case CANT_AFFORD -> "Can't afford" + close;
+			case SOLD -> "Sold" + close;
+			case NOT_YET -> "Not buyable yet";
+			case UNKNOWN -> "Button: " + name(button.getItem());
+		};
 	}
 
 	private static void box(GuiGraphicsExtractor g, int x, int y, int color) {
@@ -189,7 +344,7 @@ public final class AuctionOverlay {
 	private record Line(String text, int color) {}
 
 	private static void panel(FlipService service, AbstractContainerScreen<?> screen, State state, GuiGraphicsExtractor g,
-			Font font, int left, int top, int imageWidth, Slot target) {
+			Font font, int left, int top, int imageWidth, Slot target, ButtonState bs) {
 		List<Line> lines = new ArrayList<>();
 		FlipEvent f = state.opened.flip();
 		lines.add(new Line("Fates Flipper", GOLD));
@@ -228,7 +383,7 @@ public final class AuctionOverlay {
 			lines.add(new Line("Loading…", 0xFF777777));
 		}
 		if (state.kind == Kind.AUCTION_VIEW) {
-			lines.add(target == null ? new Line("Waiting for Buy…", 0xFFAAAAAA) : new Line(name(target.getItem()), GREEN));
+			lines.add(new Line(stateText(bs, target, service.config().pressAgainToClose), color(bs)));
 		} else {
 			lines.add(new Line(target == null ? "Waiting for Confirm…" : "Click Confirm", GREEN));
 		}
@@ -276,8 +431,9 @@ public final class AuctionOverlay {
 
 	/**
 	 * Places the cursor once on Buy (auction view) or Confirm (confirm window). Only when the
-	 * player turned it on, only for an auction opened from a flip a few seconds ago, and never if
-	 * the player has moved the mouse since the window opened. No jitter, no clicks.
+	 * player turned it on, only for the window of the flip just opened (checked against it), only
+	 * onto a buyable (green) Buy button, and never if the player has moved the mouse since the
+	 * window opened. No jitter, no clicks.
 	 */
 	static void cursorAssist(FlipService service, Minecraft mc, AbstractContainerScreen<?> screen, State state) {
 		if (state.cursorDone || !service.config().cursorAssist) return;
@@ -292,8 +448,19 @@ public final class AuctionOverlay {
 			state.cursorDone = true; // the player is using the mouse: leave it alone
 			return;
 		}
-		Slot target = target(screen, state.kind);
-		if (target == null) return; // the button hasn't arrived yet; try next tick
+		Slot target;
+		if (state.kind == Kind.AUCTION_VIEW) {
+			target = button(screen);
+			if (target == null) return; // the button hasn't arrived yet; try next tick
+			ButtonState bs = buttonState(target);
+			if (bs != ButtonState.BUYABLE) {
+				if (bs == ButtonState.SOLD || bs == ButtonState.CANT_AFFORD) state.cursorDone = true;
+				return; // only ever onto a buyable (green) button
+			}
+		} else {
+			target = confirmButton(screen);
+			if (target == null) return;
+		}
 		AbstractContainerScreenAccessor acc = (AbstractContainerScreenAccessor) screen;
 		double guiX = acc.fatesflipper$getLeftPos() + target.x + 8;
 		double guiY = acc.fatesflipper$getTopPos() + target.y + 8;
