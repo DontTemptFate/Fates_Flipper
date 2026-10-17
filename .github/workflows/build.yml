@@ -34,6 +34,24 @@ jobs:
           chmod +x ./gradlew
           ./gradlew build -Pmc=${{ matrix.mc }} --stacktrace --no-daemon 2>&1 | tee build.log
 
+      # Method signatures of the Minecraft classes the mod draws on, for development (no source access here).
+      - name: API reference (javap)
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          jar=$(find ~/.gradle/caches .gradle -name '*.jar' -path '*minecraft*' 2>/dev/null | grep -iE 'client|merged' | grep -v sources | xargs ls -S 2>/dev/null | head -1)
+          echo "jar: $jar" > api.txt
+          unzip -Z1 "$jar" | grep -iE 'FontDescription|tooltip/|ChatScreen|HoverEvent' | head -80 >> api.txt
+          for c in net.minecraft.client.gui.screens.ChatScreen net.minecraft.client.gui.GuiGraphicsExtractor \
+                   net.minecraft.client.gui.screens.inventory.AbstractContainerScreen net.minecraft.network.chat.Style \
+                   net.minecraft.network.chat.FontDescription net.minecraft.client.gui.components.ChatComponent \
+                   net.minecraft.client.gui.Font net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil \
+                   net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent net.minecraft.client.gui.screens.Screen \
+                   net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner; do
+            echo "=== $c" >> api.txt
+            javap -p -cp "$jar" "$c" >> api.txt 2>&1 || true
+          done
+
       # 26.3 renders through SDL3 and needs a real (virtual) display with GL drivers on CI.
       - name: Virtual display for the game test
         if: steps.build.outcome == 'success' && matrix.mc != '26.2'
@@ -60,6 +78,7 @@ jobs:
           mkdir -p "$out/screenshots"
           cp build.log "$out/" 2>/dev/null || echo "no build log" > "$out/build.log"
           cp gametest.log "$out/" 2>/dev/null || true
+          cp api.txt "$out/" 2>/dev/null || true
           cp build/run/clientGameTest/screenshots/*.png "$out/screenshots/" 2>/dev/null || true
           cp build/run/clientGameTest/logs/latest.log "$out/client-latest.log" 2>/dev/null || true
           for f in build/libs/*.jar; do
