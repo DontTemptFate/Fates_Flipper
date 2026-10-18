@@ -32,20 +32,22 @@ public final class PriceTooltips {
 
 	public static void register(FlipService service) {
 		ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+			if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.PRICES)) return;
 			try {
 				add(service, stack, lines);
 			} catch (RuntimeException e) {
-				// a tooltip must never crash the game
+				io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.PRICES, e); // a tooltip must never crash the game
 			}
 		});
 		bazaar = new BazaarIds(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("fatesflipper-bazaar.txt"));
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+			if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.BAZAAR)) return;
 			try {
 				if (++ticks % 20 != 0) return;
 				if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> acs) learnBazaar(acs);
 				if (ticks % 200 == 0) bazaar.saveIfDirty();
 			} catch (RuntimeException e) {
-				// never crash the game
+				io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.BAZAAR, e); // never crash the game
 			}
 		});
 	}
@@ -221,7 +223,7 @@ public final class PriceTooltips {
 		JsonObject dupe = Json.obj(d, "dupe");
 		String level = Json.str(dupe, "level");
 		if (level != null) level = io.github.donttemptfate.fatescommon.text.LegacyText.strip(level);
-		if (level != null) lines.add(Component.literal("  ⚠ " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.dupe", level)).withStyle(ChatFormatting.RED));
+		if (level != null) lines.add(Component.literal("  " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.duped", level.toUpperCase(java.util.Locale.ROOT))).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
 
 		long last = Json.lng(d, "last_traded_at", 0);
 		if (last > 0 && System.currentTimeMillis() - last > 24 * 3_600_000L) {

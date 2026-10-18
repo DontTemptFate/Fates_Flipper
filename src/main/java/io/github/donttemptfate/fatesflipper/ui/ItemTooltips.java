@@ -30,10 +30,12 @@ public final class ItemTooltips {
 			widest = 0;
 			built = null;
 		}
+		if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.TOOLTIPS)) return false;
 		Card card;
 		try {
 			card = card(service, stack);
 		} catch (RuntimeException e) {
+			io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.TOOLTIPS, e);
 			return false;
 		}
 		int w = g.guiWidth();
@@ -58,7 +60,7 @@ public final class ItemTooltips {
 				}
 				shownAtMs = System.currentTimeMillis();
 			} catch (RuntimeException e) {
-				// a tooltip must never crash the game
+				io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.TOOLTIPS, e); // a tooltip must never crash the game
 			}
 		});
 		return true;

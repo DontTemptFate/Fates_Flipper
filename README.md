@@ -40,6 +40,9 @@ your own two clicks.
 | Auction window overlay | On the flip you opened (checked by price **and** item name): filler dimmed, the item and Buy / Confirm outlined by state (green buy, orange can't afford, red sold), side panel with price, profit, confidence and recent sales of the exact item. Drawn on top of Hypixel's window; your clicks always go to Hypixel's slots. |
 | Item tooltips | SkyBlock items get a cleaner tooltip: stats, enchants, the auction listing (seller, price, time left), lines other mods add (under **MODS**) and the Fates price block (value, safe value, confidence, lowest BIN, sales per day, dupe flag). Bazaar items say so. Long tooltips scroll with the mouse wheel. |
 | Themes | Four colour themes (Fates, Midnight, Ember, Vanilla) and the Chakra Petch font, picked in settings or with `/ff theme` / `/ff font`. Both are shared with Fates OFA: change them in either mod and both follow (saved in `config/fatescommon.json`). |
+| Profile chat settings | Your active flip profile's chat options on the website are followed: alert sound, **countdown** (how long ago the auction was listed, after the line), **seller button** (`[SELLER]` puts `/ah <seller>` in your chat box; you press Enter), **lore on hover** (the item's lore under the hover card) and **just profit** (a short line: item and profit). Seller and lore need a website version that sends them. |
+| Duped items | Items the website flags get a bold red **DUPED?!** on the chat line, hover card, auction panel and item tooltip. |
+| Safe mode | A feature that keeps erroring (5 times in a minute) switches itself off until you restart, with one chat line saying so; everything else keeps working. `/ff safemode` lists them, `/ff safemode reset` turns them back on. |
 | Status display | Top-left card when connecting, offline, stopped (with the reason) or when an update is required. |
 | Update notice | When the website says a newer version is out, one chat line. When it requires a newer version, flips stop until you update (hover prices keep working). The mod never downloads anything itself. |
 | Cursor assist | **Opt-in, off by default, and turning it on asks you to type CONFIRM.** Moves the cursor once onto Buy, then once onto Confirm, for an auction you just opened from a flip, only when Buy is green. Never clicks, no jitter, and never if you're already moving the mouse. Hypixel doesn't certify mods: use at your own risk. |
@@ -62,6 +65,8 @@ your own two clicks.
 | `/ff font chakra\|vanilla` | Chakra Petch or Minecraft's font (shared with Fates OFA) |
 | `/ff theme [name]` | colour theme: `fates`, `midnight`, `ember`, `vanilla` (shared with Fates OFA) |
 | `/ff cursorassist on\|off` | opt-in, off by default; turning it on asks you to confirm |
+| `/ff verify` | link this Minecraft account to your website account for My flips (opt-in; asks you to type CONFIRM; see below) |
+| `/ff safemode [reset]` | features switched off after repeated errors / turn them back on |
 | `/ff reconnect` | connect again now |
 | `/ff server <address>` · `/ff token <token>` | set the address / token without the settings screen |
 
@@ -73,7 +78,7 @@ your own two clicks.
   The token is sent only to your address (redirects are never followed) and never written to logs.
 - Plain `http://` is only allowed to this computer, your home network (10.x, 172.16–31.x,
   192.168.x) and Tailscale addresses; anything else needs `https://`.
-- The mod never reads, stores or sends your Minecraft login or session.
+- The mod never stores or sends your Minecraft login or session. The one exception is `/ff verify`, which you run yourself (below): it lets Minecraft's own "join server" call use your session, exactly as joining any server does, and that goes only to Mojang.
 - Data from the server is only ever shown. The only command the mod sends because of server data is
   `/viewauction <32-hex id>`, checked locally; anything else is refused. Download links from the
   server are shown as text only (https).
@@ -82,6 +87,24 @@ your own two clicks.
   Modrinth page once it exists).
 - A crash report includes a short "Fates Flipper" section (version and which features were on),
   never the token or the server address.
+
+## What `/ff verify` sends
+
+`/ff verify` is optional and does nothing until you type `/ff verify CONFIRM`. It runs once, then stops.
+All of it is in one file, [`Verify.java`](src/main/java/io/github/donttemptfate/fatesflipper/Verify.java),
+with a step-by-step comment at the top.
+
+1. The mod asks **your** Fates website (the address in settings, with your mod token) for a one-use
+   code: `GET /mod/whoami/challenge`.
+2. It gives that code to **Minecraft's own** `joinServer` call, the same call Minecraft makes when you
+   join any online-mode server. Minecraft sends it to Mojang (`sessionserver.mojang.com`). Your session
+   token is used inside Minecraft for that call only; the mod never keeps, logs, shows or sends it.
+3. It sends your website exactly two things: your **player name** and **the same code**
+   (`POST /mod/whoami {"name", "server_id"}`). A unit test checks that nothing else is in that request.
+4. The website asks Mojang whether that name joined with that code. Mojang only says yes if step 2
+   came from your game, so the website learns the account is yours without ever seeing a password or token.
+
+Searching the source for `getAccessToken` finds it in that one file only (another unit test checks this).
 
 ## Build
 

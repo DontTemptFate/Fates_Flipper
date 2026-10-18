@@ -376,9 +376,12 @@ public final class FlipService implements FlipStream.Listener {
 
 	/** Sound on alerts: the player's setting, unless the active profile turned it off. */
 	public boolean alertSound() {
-		if (!config.sound) return false;
-		JsonObject cs = chatSettings;
-		return cs == null || !Json.hasBool(cs, "sound") || Json.bool(cs, "sound", true);
+		return config.sound && chatPrefs().sound();
+	}
+
+	/** The active profile's chat settings (defaults when the viewer sent none). */
+	public io.github.donttemptfate.fatesflipper.core.ChatPrefs chatPrefs() {
+		return io.github.donttemptfate.fatesflipper.core.ChatPrefs.of(chatSettings);
 	}
 
 	// ---- opening auctions (game thread) ----------------------------------------------------

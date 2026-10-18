@@ -31,7 +31,13 @@ public record FlipEvent(
 		boolean commandMatches,
 		String profileName,
 		/** Why confidence isn't HIGH ("wide prices", "few sales", …; viewer v0.28.1), or null. */
-		String confReason) {
+		String confReason,
+		/** The seller's Minecraft name (card {@code seller_name}, checked), or null. */
+		String seller,
+		/** The item's lore as § text (card {@code lore}, at most 40 lines, cleaned), empty when not sent. */
+		java.util.List<String> lore) {
+
+	static final java.util.regex.Pattern PLAYER = java.util.regex.Pattern.compile("^[A-Za-z0-9_]{1,16}$");
 
 	public static FlipEvent parse(JsonObject flip) {
 		if (flip == null) return null;
@@ -68,7 +74,32 @@ public record FlipEvent(
 				Json.str(flip, "chat"),
 				matches,
 				Json.str(profile, "name"),
-				clean(Json.str(est, "conf_reason")));
+				clean(Json.str(est, "conf_reason")),
+				player(Json.str(card, "seller_name")),
+				lore(Json.arr(card, "lore")));
+	}
+
+	private static String player(String s) {
+		return s != null && PLAYER.matcher(s).matches() ? s : null;
+	}
+
+	private static java.util.List<String> lore(com.google.gson.JsonArray a) {
+		if (a == null) return java.util.List.of();
+		java.util.List<String> out = new java.util.ArrayList<>();
+		for (com.google.gson.JsonElement e : a) {
+			if (out.size() >= 40) break;
+			if (e.isJsonPrimitive()) out.add(LegacyText.sanitize(e.getAsString()));
+		}
+		return java.util.List.copyOf(out);
+	}
+
+	/** The short line for the profile setting "just profit": name and cautious profit. */
+	public String profitChat() {
+		double p = Double.isNaN(safeProfit) ? profit : safeProfit;
+		StringBuilder sb = new StringBuilder("§6FLIP §f").append(name);
+		if (!Double.isNaN(p)) sb.append(p >= 0 ? " §a+" : " §c").append(Coins.format(p));
+		if (dupe != null) sb.append(" §c§lDUPED?!");
+		return sb.toString();
 	}
 
 	private static String clean(String s) {
@@ -83,7 +114,7 @@ public record FlipEvent(
 		if (!Double.isNaN(safeProfit)) sb.append(" §7cautious profit §a+").append(Coins.format(safeProfit));
 		else if (!Double.isNaN(profit)) sb.append(" §7profit §a+").append(Coins.format(profit));
 		if (confidence != null) sb.append(" §8").append(confidence);
-		if (dupe != null) sb.append(" §c[").append(dupe.toUpperCase(java.util.Locale.ROOT)).append("]");
+		if (dupe != null) sb.append(" §c§lDUPED?!");
 		return sb.toString();
 	}
 }

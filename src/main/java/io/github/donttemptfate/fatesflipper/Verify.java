@@ -1,7 +1,6 @@
 package io.github.donttemptfate.fatesflipper;
 
 import com.google.gson.JsonObject;
-import com.mojang.authlib.minecraft.MinecraftSessionService;
 import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.ViewerApi;
 import net.minecraft.client.Minecraft;
@@ -26,7 +25,7 @@ import static io.github.donttemptfate.fatesflipper.core.Tr.tr;
  *       other request) for a one-use code: {@code GET /mod/whoami/challenge} → {@code {server_id}}.
  *       The code is checked to be short and plain ({@link #SERVER_ID}); anything else stops here.</li>
  *   <li>{@link #joinMojang} hands that code to <b>Minecraft's own</b> session service:
- *       {@code MinecraftSessionService.joinServer(profileId, accessToken, serverId)}. This is the exact
+ *       {@code mc.services().sessionService().joinServer(profileId, accessToken, serverId)}. This is the exact
  *       call Minecraft makes every time you join any online-mode server. Minecraft sends it to Mojang's
  *       session server ({@code sessionserver.mojang.com}) and nowhere else. Your access token is read in
  *       that one line, passed straight into the call, and never kept, logged, shown or sent anywhere by
@@ -99,7 +98,7 @@ public final class Verify {
 	private static void joinMojang(Minecraft mc, String serverId) {
 		User user = mc.getUser();
 		UUID profileId = user.getProfileId();
-		MinecraftSessionService sessions = mc.services().sessionService();
+		var sessions = mc.services().sessionService(); // 26.2 MinecraftSessionService, 26.3 SessionService
 		try {
 			sessions.joinServer(profileId, user.getAccessToken(), serverId);
 		} catch (Exception e) {

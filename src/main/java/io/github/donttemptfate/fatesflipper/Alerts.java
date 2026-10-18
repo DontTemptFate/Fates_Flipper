@@ -23,19 +23,32 @@ public final class Alerts {
 	public static void show(FlipService service, FlipEvent f) {
 		if (!service.config().alerts) return;
 		if (!AuctionIds.isValid(f.auctionId())) return;
-		String text = f.chat() != null && !f.chat().isBlank() ? f.chat() : f.fallbackChat();
+		io.github.donttemptfate.fatesflipper.core.ChatPrefs prefs = service.chatPrefs();
+		String text = prefs.justProfit() ? f.profitChat()
+				: f.chat() != null && !f.chat().isBlank() ? f.chat() : f.fallbackChat();
+		if (prefs.countdown() && f.firstSeenAt() > 0) {
+			text += " §8(" + Coins.age(System.currentTimeMillis() - f.firstSeenAt()) + ")";
+		}
 		MutableComponent line = Chat.fromLegacy(text);
-		MutableComponent full = Component.empty().append(line);
-		full.withStyle(style -> style
+		line.withStyle(style -> style
 				.withClickEvent(new ClickEvent.RunCommand("/ff open " + f.auctionId()))
-				.withHoverEvent(new HoverEvent.ShowText(details(f))));
+				.withHoverEvent(new HoverEvent.ShowText(details(f, prefs.loreOnHover()))));
+		MutableComponent full = Component.empty().append(line);
+		if (prefs.sellerButton() && f.seller() != null) {
+			// only fills the chat box; the player presses Enter (the mod never sends it)
+			full.append(Component.literal(" "));
+			full.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.seller_button")).withStyle(style -> style
+					.withColor(ChatFormatting.DARK_AQUA)
+					.withClickEvent(new ClickEvent.SuggestCommand("/ah " + f.seller()))
+					.withHoverEvent(new HoverEvent.ShowText(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.seller_hover", f.seller()))))));
+		}
 		Chat.send(full);
 		if (service.alertSound()) {
 			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.6f));
 		}
 	}
 
-	static Component details(FlipEvent f) {
+	static Component details(FlipEvent f, boolean withLore) {
 		MutableComponent c = Component.empty();
 		c.append(Chat.fromLegacy(f.name())).append("\n");
 		if (f.summary() != null && !f.summary().isBlank()) {
@@ -54,8 +67,14 @@ public final class Alerts {
 		String sales = f.salesUsed() > 0 ? ", " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.sales", f.salesUsed()) : "";
 		String vol = Double.isNaN(f.volumePerDay()) ? "" : ", " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.per_day", String.format(Locale.ROOT, "%.1f", f.volumePerDay()));
 		line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.confidence"), conf + sales + vol, ChatFormatting.WHITE);
-		if (f.dupe() != null) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.dupe"), LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT), ChatFormatting.RED);
+		if (f.dupe() != null) {
+			c.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.duped", LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT))).withStyle(ChatFormatting.RED, ChatFormatting.BOLD)).append("\n");
+		}
 		if (f.firstSeenAt() > 0) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.listed"), io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.ago", Coins.age(System.currentTimeMillis() - f.firstSeenAt())), ChatFormatting.GRAY);
+		if (withLore && !f.lore().isEmpty()) {
+			c.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.lore")).withStyle(ChatFormatting.DARK_GRAY)).append("\n");
+			for (String l : f.lore()) c.append(Chat.fromLegacy(l)).append("\n");
+		}
 		c.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.click")).withStyle(ChatFormatting.GOLD));
 		io.github.donttemptfate.fatesflipper.ui.FlipHovers.register(c, f); // shown as the Fates flip card
 		return c;

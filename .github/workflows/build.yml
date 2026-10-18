@@ -63,7 +63,7 @@ jobs:
           done
           auth=$(find ~/.gradle/caches -name 'authlib-*.jar' 2>/dev/null | grep -v sources | head -1)
           echo "=== authlib: $auth" >> api.txt
-          javap -cp "$auth" com.mojang.authlib.minecraft.MinecraftSessionService >> api.txt 2>&1 || true
+          javap -cp "$auth" com.mojang.authlib.minecraft.MinecraftSessionService com.mojang.authlib.minecraft.SessionService >> api.txt 2>&1 || true
 
       # 26.3 renders through SDL3 and needs a real (virtual) display with GL drivers on CI.
       - name: Virtual display for the game test
