@@ -1,0 +1,8 @@
+sha=f4e149b01490ec84e1f2cfd26263077f02b01d40
+run=https://github.com/DontTemptFate/Fates_Flipper/actions/runs/39160829270
+[fatesflipper-mc26.2]
+result=success
+gametest=success
+[fatesflipper-mc26.3]
+result=success
+gametest=success
