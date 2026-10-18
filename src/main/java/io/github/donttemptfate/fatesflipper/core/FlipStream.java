@@ -159,7 +159,7 @@ public final class FlipStream {
 			}
 			long paused = api.pausedForMs(System.currentTimeMillis());
 			if (paused > 0) {
-				setState(State.RETRYING, "Server asked to slow down; retrying in " + (paused / 1000 + 1) + " s.");
+				setState(State.RETRYING, Tr.tr("fatesflipper.net.retry_slow", paused / 1000 + 1));
 				waitFor(gen, paused);
 				continue;
 			}
@@ -169,7 +169,7 @@ public final class FlipStream {
 				case STABLE_END -> {
 					backoff.reset();
 					long d = backoff.nextDelayMs();
-					setState(State.RETRYING, "Connection dropped; reconnecting.");
+					setState(State.RETRYING, Tr.tr("fatesflipper.net.dropped_reconnecting"));
 					waitFor(gen, d);
 				}
 				case FAILED -> {
@@ -209,7 +209,7 @@ public final class FlipStream {
 			if (last != null && t.baseUrl().equals(lastEventBase)) b.header("Last-Event-ID", last);
 			req = b.build();
 		} catch (IllegalArgumentException e) {
-			return new Outcome(Kind.STOPPED, "Bad server address.");
+			return new Outcome(Kind.STOPPED, Tr.tr("fatesflipper.net.bad_address"));
 		}
 		HttpResponse<InputStream> resp;
 		try {
@@ -218,14 +218,14 @@ public final class FlipStream {
 			Thread.currentThread().interrupt();
 			return new Outcome(Kind.RESTART, "");
 		} catch (Exception e) {
-			return new Outcome(Kind.FAILED, "Can't reach the server (" + ViewerApi.rootMessage(e) + ").");
+			return new Outcome(Kind.FAILED, Tr.tr("fatesflipper.net.unreachable", ViewerApi.rootMessage(e)));
 		}
 		int code = resp.statusCode();
 		if (code != 200) {
 			String errBody = code == 426 ? ViewerApi.readLimited(resp.body()) : null;
 			closeQuietly(resp.body());
 			return switch (code) {
-				case 401 -> new Outcome(Kind.STOPPED, "Mod token missing or revoked: make a new one in the web page, then /ff config.");
+				case 401 -> new Outcome(Kind.STOPPED, Tr.tr("fatesflipper.net.revoked"));
 				case 426 -> {
 					JsonObject j = errBody == null ? null : Json.parseObject(errBody);
 					String min = Json.str(j, "min_version");
@@ -235,16 +235,15 @@ public final class FlipStream {
 					} catch (RuntimeException ignored) {
 						// never let the listener break the stream loop
 					}
-					yield new Outcome(Kind.STOPPED, "This Fates Flipper is too old for the server"
-							+ (Versions.valid(min) ? ": " + min + " or newer is required" : "") + (url != null ? ". Get it at " + url : "") + ".");
+					yield new Outcome(Kind.STOPPED, ViewerApi.tooOld(Versions.valid(min) ? min : null, url));
 				}
 				case 403 -> new Outcome(Kind.STOPPED, ViewerApi.forbiddenMessage(null, null));
 				case 429 -> {
 					long ms = ViewerApi.retryAfterMs(resp);
 					api.pauseFor(ms);
-					yield new Outcome(Kind.RATE_LIMITED, "Too many connections for this account (3 games at most); retrying in " + (ms / 1000) + " s.");
+					yield new Outcome(Kind.RATE_LIMITED, Tr.tr("fatesflipper.net.too_many", ms / 1000));
 				}
-				default -> new Outcome(Kind.FAILED, "Server answered " + code + ".");
+				default -> new Outcome(Kind.FAILED, Tr.tr("fatesflipper.net.answered", code));
 			};
 		}
 		long start = System.currentTimeMillis();
@@ -274,7 +273,7 @@ public final class FlipStream {
 		}
 		if (gen != generation || !allowed.getAsBoolean()) return new Outcome(Kind.RESTART, "");
 		long lasted = System.currentTimeMillis() - start;
-		return lasted >= STABLE_AFTER_MS ? new Outcome(Kind.STABLE_END, "") : new Outcome(Kind.FAILED, "Connection dropped.");
+		return lasted >= STABLE_AFTER_MS ? new Outcome(Kind.STABLE_END, "") : new Outcome(Kind.FAILED, Tr.tr("fatesflipper.net.dropped"));
 	}
 
 	/** Longest line accepted from the stream; a longer one ends the connection. */

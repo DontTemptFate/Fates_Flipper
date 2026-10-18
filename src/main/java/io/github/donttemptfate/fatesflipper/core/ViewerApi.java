@@ -136,10 +136,10 @@ public final class ViewerApi {
 
 	public Target target() {
 		ModConfig c = config.get();
-		if (c == null) return new Target(null, null, "Not set up yet.");
+		if (c == null) return new Target(null, null, Tr.tr("fatesflipper.net.not_setup"));
 		ServerAddress.Check check = ServerAddress.check(c.serverUrl);
 		if (!check.ok()) return new Target(null, null, check.problem());
-		if (c.token == null || c.token.isBlank()) return new Target(null, null, "No mod token set. Make one in the web page (account menu → Mod tokens), then /ff config.");
+		if (c.token == null || c.token.isBlank()) return new Target(null, null, Tr.tr("fatesflipper.net.no_token"));
 		return new Target(check.baseUrl(), c.token.trim(), null);
 	}
 
@@ -177,14 +177,14 @@ public final class ViewerApi {
 		try {
 			b = request(t, path);
 		} catch (IllegalArgumentException e) {
-			return done(Status.ERROR, 0, null, "Bad server address.", 0);
+			return done(Status.ERROR, 0, null, Tr.tr("fatesflipper.net.bad_address"), 0);
 		}
 		if (body == null) b.GET();
 		else b.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8));
 		return http.sendAsync(b.build(), HttpResponse.BodyHandlers.ofInputStream())
 				.thenApply(r -> toResult(r.statusCode(), r.headers().firstValue("Retry-After").orElse(null), readLimited(r.body())))
 				.orTimeout(BODY_DEADLINE_MS + 15_000, java.util.concurrent.TimeUnit.MILLISECONDS)
-				.exceptionally(ex -> new Result(Status.ERROR, 0, null, "Can't reach the server (" + rootMessage(ex) + ").", 0));
+				.exceptionally(ex -> new Result(Status.ERROR, 0, null, Tr.tr("fatesflipper.net.unreachable", rootMessage(ex)), 0));
 	}
 
 	/** Largest response body the mod reads (anything bigger is treated as broken). */
@@ -224,31 +224,36 @@ public final class ViewerApi {
 		String err = Json.str(json, "error");
 		return switch (code) {
 			case 200 -> json == null
-					? new Result(Status.ERROR, code, null, "The server sent something unexpected.", 0)
+					? new Result(Status.ERROR, code, null, Tr.tr("fatesflipper.net.unexpected"), 0)
 					: new Result(Status.OK, code, json, null, 0);
-			case 401 -> new Result(Status.UNAUTHORIZED, code, json, "Mod token missing or revoked: make a new one in the web page (account menu → Mod tokens), then /ff config.", 0);
+			case 401 -> new Result(Status.UNAUTHORIZED, code, json, Tr.tr("fatesflipper.net.revoked"), 0);
 			case 403 -> new Result(Status.FORBIDDEN, code, json, forbiddenMessage(json, err), 0);
-			case 404 -> new Result(Status.NOT_FOUND, code, json, err != null ? err : "Not found.", 0);
+			case 404 -> new Result(Status.NOT_FOUND, code, json, err != null ? err : Tr.tr("fatesflipper.net.not_found"), 0);
 			case 426 -> {
 				String min = Json.str(json, "min_version");
 				String url = Versions.safeUrl(Json.str(json, "download_url"));
-				yield new Result(Status.ERROR, code, json, "This Fates Flipper is too old for the server"
-						+ (Versions.valid(min) ? ": " + min + " or newer is required" : "") + (url != null ? ". Get it at " + url : "") + ".", 0);
+				yield new Result(Status.ERROR, code, json, tooOld(min, url), 0);
 			}
 			case 429 -> {
 				long ms = parseRetryAfter(retryAfter);
 				pauseFor(ms);
-				yield new Result(Status.RATE_LIMITED, code, json, "The server asked to slow down; waiting " + (ms / 1000) + " s.", ms);
+				yield new Result(Status.RATE_LIMITED, code, json, Tr.tr("fatesflipper.net.slow_down", ms / 1000), ms);
 			}
-			default -> new Result(Status.ERROR, code, json, "Server error " + code + (err != null ? ": " + LegacyText.sanitize(err) : "") + ".", 0);
+			default -> new Result(Status.ERROR, code, json, (err != null ? Tr.tr("fatesflipper.net.server_error_msg", code, LegacyText.sanitize(err)) : Tr.tr("fatesflipper.net.server_error", code)), 0);
 		};
 	}
 
+	/** The 426 message: too old for the server, with the minimum and a download link when known. */
+	static String tooOld(String min, String url) {
+		String s = Versions.valid(min) ? Tr.tr("fatesflipper.net.too_old_min", min) : Tr.tr("fatesflipper.net.too_old");
+		return url != null ? s + " " + Tr.tr("fatesflipper.net.get_it", url) : s;
+	}
+
 	static String forbiddenMessage(JsonObject json, String err) {
-		if (Json.bool(json, "must_change_pw", false)) return "Your viewer account must change its password first (open the web page).";
+		if (Json.bool(json, "must_change_pw", false)) return Tr.tr("fatesflipper.net.change_pw");
 		if (Json.bool(json, "private_only", false) || (err != null && err.toLowerCase().contains("admin")))
-			return "Admin tokens only work on the private (Tailscale) address. Use your private address, or a normal account's token here.";
-		return "The server refused this token" + (err != null ? " (" + LegacyText.sanitize(err) + ")" : "") + ". Admin tokens only work on the private address.";
+			return Tr.tr("fatesflipper.net.admin_private");
+		return err != null ? Tr.tr("fatesflipper.net.refused_msg", LegacyText.sanitize(err)) : Tr.tr("fatesflipper.net.refused");
 	}
 
 	static long retryAfterMs(HttpResponse<?> r) {

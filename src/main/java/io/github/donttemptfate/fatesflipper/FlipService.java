@@ -92,14 +92,14 @@ public final class FlipService implements FlipStream.Listener {
 		if (!toldAboutLatest && io.github.donttemptfate.fatescommon.text.Versions.valid(latest)
 				&& io.github.donttemptfate.fatescommon.text.Versions.compare(modVersion, latest) < 0) {
 			toldAboutLatest = true;
-			mc.execute(() -> Chat.info("Fates Flipper " + latest + " is available (you have " + modVersion + ")"
-					+ (url != null ? ": " + url : ".")));
+			mc.execute(() -> Chat.info(url != null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.update_available_url", latest, modVersion, url)
+					: io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.update_available", latest, modVersion)));
 		}
 	}
 
 	private void blockOutdated(String min, String url) {
-		String msg = "Fates Flipper " + (min != null ? min + " or newer" : "a newer version") + " is required (you have " + modVersion + ")"
-				+ (url != null ? ". Get it at " + url : "") + ". Flips are off; hover prices still work.";
+		String msg = io.github.donttemptfate.fatesflipper.core.Tr.tr(min != null ? "fatesflipper.msg.update_required" : "fatesflipper.msg.update_required_any", min != null ? min : "", modVersion)
+				+ (url != null ? " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.get_it", url) : "") + " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.flips_off"); hover prices still work.";
 		boolean first = updateRequired == null;
 		updateRequired = msg;
 		stream.poke();
@@ -144,7 +144,7 @@ public final class FlipService implements FlipStream.Listener {
 			next.save();
 		} catch (Exception e) {
 			FatesFlipperClient.LOG.warn("Couldn't save settings: {}", e.toString());
-			Chat.error("Couldn't save settings: " + e.getClass().getSimpleName());
+			Chat.error(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.save_failed", e.getClass().getSimpleName()));
 		}
 		boolean connectionChanged = !prev.serverUrl.equals(next.serverUrl) || !prev.token.equals(next.token);
 		if (connectionChanged) {
@@ -266,7 +266,7 @@ public final class FlipService implements FlipStream.Listener {
 		mc.execute(() -> {
 			if (state == FlipStream.State.CONNECTED && !announcedConnected) {
 				announcedConnected = true;
-				Chat.info("Connected to Fates Viewer. Flips will show here.");
+				Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.connected"));
 				refreshChatSettings();
 				checkVersion();
 			} else if (state == FlipStream.State.STOPPED && prev != FlipStream.State.STOPPED) {
@@ -307,7 +307,7 @@ public final class FlipService implements FlipStream.Listener {
 		boolean changed = profileName != null && !profileName.equals(name);
 		profileName = name;
 		if (changed) {
-			mc.execute(() -> Chat.info(name == null ? "Flip profile turned off: no flips will be sent." : "Active flip profile: " + name));
+			mc.execute(() -> Chat.info(name == null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.profile_off") : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.profile_active", name)));
 			refreshChatSettings();
 		}
 	}
@@ -376,16 +376,16 @@ public final class FlipService implements FlipStream.Listener {
 	public boolean openAuction(String rawId, FlipEvent flip) {
 		String id = AuctionIds.normalize(rawId);
 		if (id == null) {
-			Chat.error("That isn't an auction id.");
+			Chat.error(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.bad_id"));
 			return false;
 		}
 		if (mc.player == null) return false;
 		if (!onHypixel && config.onlyOnHypixel) {
-			Chat.warn("Not on Hypixel: auctions only open there.");
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.not_hypixel_open"));
 			return false;
 		}
 		if (!commandCooldown.tryAcquire(System.currentTimeMillis())) {
-			Chat.warn("Slow down: one auction every half second.");
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.slow"));
 			return false;
 		}
 		mc.player.connection.sendCommand(AuctionIds.viewAuctionCommand(id));
@@ -416,7 +416,7 @@ public final class FlipService implements FlipStream.Listener {
 	public void openFromChat(String rawId) {
 		String id = AuctionIds.normalize(rawId);
 		if (id == null) {
-			Chat.error("That isn't an auction id.");
+			Chat.error(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.bad_id"));
 			return;
 		}
 		if (lookupInFlight) return;
@@ -428,7 +428,7 @@ public final class FlipService implements FlipStream.Listener {
 					openedIds.add(id);
 				}
 				FlipEvent f = recentFlip(id);
-				mc.execute(() -> Chat.warn((f == null ? "That auction" : f.name()) + " already " + ("sold".equals(s) ? "sold." : "ended.")));
+				mc.execute(() -> Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("sold".equals(s) ? "fatesflipper.msg.already_sold" : "fatesflipper.msg.already_ended", f == null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.that_auction") : f.name())));
 				return;
 			}
 			mc.execute(() -> openAuction(id, null));
@@ -462,17 +462,17 @@ public final class FlipService implements FlipStream.Listener {
 			long held = Json.lng(json, "held", 0);
 			long nextIn = Json.lng(json, "next_in_s", -1);
 			if (held > 0) {
-				return "No " + mode + " flip ready yet: " + held + " coming" + (nextIn >= 0 ? " in " + nextIn + " s." : " soon.");
+				return nextIn >= 0 ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.held_in", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode), held, nextIn) : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.held_soon", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode), held);
 			}
 			if (matching > 0 && skipped >= matching) {
-				return "No new " + mode + " flip: " + matching + " matched, all already opened.";
+				return io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.all_opened", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode), matching);
 			}
-			return "No " + mode + " flip right now.";
+			return io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.none", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode));
 		}
 		long waiting = Json.lng(json, "waiting", 0);
 		return waiting > 0
-				? "No new " + mode + " flip right now (" + waiting + " matched, already opened or not visible yet)."
-				: "No " + mode + " flip right now.";
+				? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.waiting", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode), waiting)
+				: io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.next.none", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode));
 	}
 
 	/** The open best / safest flip key: one lookup, then at most one command. */
@@ -482,7 +482,7 @@ public final class FlipService implements FlipStream.Listener {
 			return;
 		}
 		if (!active()) {
-			Chat.warn("Not on Hypixel: flips only open there.");
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.not_hypixel_flips"));
 			return;
 		}
 		if (lookupInFlight) return; // a press while the last one is still looking does nothing
@@ -508,11 +508,11 @@ public final class FlipService implements FlipStream.Listener {
 					synchronized (this) {
 						openedIds.add(f.auctionId());
 					}
-					mc.execute(() -> Chat.warn(f.name() + " already " + s + ". Press again for the next one."));
+					mc.execute(() -> Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("sold".equals(s) ? "fatesflipper.next.sold" : "fatesflipper.next.gone", f.name())));
 					return;
 				}
 				mc.execute(() -> {
-					if (openAuction(f.auctionId(), f)) Chat.info("Opening " + mode + ": " + f.name());
+					if (openAuction(f.auctionId(), f)) Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.opening", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mode." + mode), f.name()));
 				});
 			});
 		}).whenComplete((v, ex) -> lookupInFlight = false);

@@ -39,20 +39,20 @@ public final class Commands {
 				}))
 				.then(ClientCommands.literal("reconnect").executes(c -> {
 					s.reconnect();
-					Chat.info("Reconnecting…");
+					Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.reconnecting"));
 					return 1;
 				}))
 				.then(ClientCommands.literal("on").executes(c -> setBool(s, (cfg, v) -> cfg.alerts = v, true, "Flip alerts on.")))
 				.then(ClientCommands.literal("off").executes(c -> setBool(s, (cfg, v) -> cfg.alerts = v, false, "Flip alerts off (keys and tooltips still work).")))
-				.then(toggle("sound", s, (cfg, v) -> cfg.sound = v, "Alert sound"))
-				.then(toggle("tooltips", s, (cfg, v) -> cfg.tooltips = v, "Price tooltips"))
-				.then(toggle("overlay", s, (cfg, v) -> cfg.auctionOverlay = v, "Auction window overlay"))
-				.then(toggle("hud", s, (cfg, v) -> cfg.hudStatus = v, "Status display"))
-				.then(toggle("closekey", s, (cfg, v) -> cfg.pressAgainToClose = v, "Press the open key again to close a flip"))
-				.then(toggle("look", s, (cfg, v) -> cfg.fatesLook = v, "Fates look"))
-				.then(toggle("fatestooltips", s, (cfg, v) -> cfg.fatesTooltips = v, "Fates item tooltips"))
-				.then(toggle("skyblock", s, (cfg, v) -> cfg.onlyInSkyBlock = v, "Alerts only in SkyBlock"))
-				.then(toggle("dungeons", s, (cfg, v) -> cfg.alertsInDungeons = v, "Alerts in dungeons and Kuudra"))
+				.then(toggle("sound", s, (cfg, v) -> cfg.sound = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.sound")))
+				.then(toggle("tooltips", s, (cfg, v) -> cfg.tooltips = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.tooltips")))
+				.then(toggle("overlay", s, (cfg, v) -> cfg.auctionOverlay = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.overlay")))
+				.then(toggle("hud", s, (cfg, v) -> cfg.hudStatus = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.hud")))
+				.then(toggle("closekey", s, (cfg, v) -> cfg.pressAgainToClose = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.closekey")))
+				.then(toggle("look", s, (cfg, v) -> cfg.fatesLook = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.look")))
+				.then(toggle("fatestooltips", s, (cfg, v) -> cfg.fatesTooltips = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.fatestooltips")))
+				.then(toggle("skyblock", s, (cfg, v) -> cfg.onlyInSkyBlock = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.skyblock")))
+				.then(toggle("dungeons", s, (cfg, v) -> cfg.alertsInDungeons = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.dungeons")))
 				.then(ClientCommands.literal("font")
 						.then(ClientCommands.literal("chakra").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, true, "Font: Chakra Petch.")))
 						.then(ClientCommands.literal("vanilla").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, false, "Font: Minecraft."))))
@@ -60,14 +60,14 @@ public final class Commands {
 						// turning it on needs a second, typed confirmation (Fate, 2026-10-18)
 						.then(ClientCommands.literal("on").executes(c -> {
 							if (s.config().cursorAssist) {
-								Chat.info("Cursor assist is already on.");
+								Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.ca.already"));
 								return 1;
 							}
-							Chat.warn(ConfigScreen.CURSOR_ASSIST_RISK);
-							Chat.warn("To turn it on, type: /ff cursorassist on CONFIRM");
+							Chat.warn(ConfigScreen.cursorAssistRisk());
+							Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.ca.confirm"));
 							return 1;
 						}).then(ClientCommands.literal("CONFIRM").executes(c -> {
-							setBool(s, (cfg, v) -> cfg.cursorAssist = v, true, "Cursor assist on. /ff cursorassist off to turn it off.");
+							setBool(s, (cfg, v) -> cfg.cursorAssist = v, true, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.ca.on"));
 							return 1;
 						})))
 						.then(ClientCommands.literal("off").executes(c -> setBool(s, (cfg, v) -> cfg.cursorAssist = v, false, "Cursor assist off."))))
@@ -111,22 +111,22 @@ public final class Commands {
 	}
 
 	private static int help() {
-		Chat.send(Chat.prefix().append(Component.literal("Fates Flipper commands").withStyle(ChatFormatting.WHITE)));
+		Chat.send(Chat.prefix().append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.title")).withStyle(ChatFormatting.WHITE)));
 		String[][] rows = {
-				{"/ff config", "settings screen (server address, token, toggles)"},
-				{"/ff status", "connection, profile and settings"},
-				{"/ff best | safest", "open the best / safest flip (or bind keys in Controls)"},
-				{"/ff recent", "the last flips, clickable"},
-				{"/ff profiles", "list your flip profiles; /ff profile <name> to switch, /ff profile off"},
-				{"/ff on | off", "flip alerts on / off"},
-				{"/ff sound|tooltips|overlay|hud on|off", "toggles"},
-				{"/ff skyblock on|off", "alerts only in SkyBlock (on)"},
-				{"/ff dungeons on|off", "alerts in dungeons and Kuudra too (off)"},
-				{"/ff closekey on|off", "press the open key again to close the flip (on)"},
-				{"/ff look|fatestooltips on|off", "the Fates look; Fates item tooltips"},
-				{"/ff font chakra|vanilla", "Chakra Petch or Minecraft's font"},
-				{"/ff cursorassist on|off", "opt-in, off by default; turning it on asks you to confirm"},
-				{"/ff reconnect", "connect again now"},
+				{"/ff config", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.01")},
+				{"/ff status", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.02")},
+				{"/ff best | safest", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.03")},
+				{"/ff recent", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.04")},
+				{"/ff profiles", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.05")},
+				{"/ff on | off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.06")},
+				{"/ff sound|tooltips|overlay|hud on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.07")},
+				{"/ff skyblock on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.08")},
+				{"/ff dungeons on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.09")},
+				{"/ff closekey on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.10")},
+				{"/ff look|fatestooltips on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.11")},
+				{"/ff font chakra|vanilla", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.12")},
+				{"/ff cursorassist on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.13")},
+				{"/ff reconnect", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.14")},
 		};
 		for (String[] r : rows) {
 			Chat.send(Component.literal("  " + r[0]).withStyle(ChatFormatting.YELLOW)
@@ -138,31 +138,31 @@ public final class Commands {
 	private static int status(FlipService s) {
 		ModConfig c = s.config();
 		ServerAddress.Check chk = ServerAddress.check(c.serverUrl);
-		Chat.send(Chat.prefix().append(Component.literal("Status").withStyle(ChatFormatting.WHITE)));
-		row("Server", chk.ok() ? chk.baseUrl() : "not set (" + chk.problem() + ")");
-		row("Mod token", ModConfig.maskToken(c.token));
-		row("On Hypixel", s.onHypixel() ? "yes" : "no" + (c.onlyOnHypixel ? " (the mod only connects on Hypixel)" : ""));
+		Chat.send(Chat.prefix().append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.title")).withStyle(ChatFormatting.WHITE)));
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.server"), chk.ok() ? chk.baseUrl() : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.notset", chk.problem()));
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.token"), ModConfig.maskToken(c.token));
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.hypixel"), s.onHypixel() ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.yes") : io.github.donttemptfate.fatesflipper.core.Tr.tr(c.onlyOnHypixel ? "fatesflipper.cmd.status.hypixel.no_only" : "fatesflipper.cmd.no"));
 		String st = switch (s.streamState()) {
-			case CONNECTED -> "connected";
-			case CONNECTING -> "connecting…";
-			case RETRYING -> "reconnecting: " + s.streamDetail();
-			case STOPPED -> "stopped: " + s.streamDetail();
-			case WAITING -> "waiting: " + s.streamDetail();
-			case OFF -> c.alerts ? "off (not on Hypixel)" : "off (alerts are off)";
+			case CONNECTED -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.state.connected");
+			case CONNECTING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.state.connecting");
+			case RETRYING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.state.retrying", s.streamDetail());
+			case STOPPED -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.state.stopped", s.streamDetail());
+			case WAITING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.state.waiting", s.streamDetail());
+			case OFF -> io.github.donttemptfate.fatesflipper.core.Tr.tr(c.alerts ? "fatesflipper.cmd.state.off_hypixel" : "fatesflipper.cmd.state.off_alerts");
 		};
-		row("Flip alerts", st);
-		row("Flip profile", s.profileName() == null ? "(none / unknown)" : s.profileName());
-		row("Version", s.modVersion() + (s.updateRequired() != null ? " (update required: flips are off)" : ""));
-		row("Toggles", "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.alerts"), st);
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.profile"), s.profileName() == null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.profile.none") : s.profileName());
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.version"), s.modVersion() + (s.updateRequired() != null ? " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.version.outdated") : ""));
+		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.toggles"), "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
 				+ ", hud " + onOff(c.hudStatus) + ", close key " + onOff(c.pressAgainToClose) + ", cursor assist " + onOff(c.cursorAssist)
 				+ ", look " + onOff(c.fatesLook) + ", Fates tooltips " + onOff(c.fatesTooltips) + ", font " + (c.chakraFont ? "Chakra" : "Minecraft"));
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();
-				row("Viewer", "v" + io.github.donttemptfate.fatescommon.text.LegacyText.strip(String.valueOf(Json.str(j, "version"))) + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
+				row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.viewer"), "v" + io.github.donttemptfate.fatescommon.text.LegacyText.strip(String.valueOf(Json.str(j, "version"))) + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
 						+ (Json.hasBool(j, "live_feed") ? ", live feed " + (Json.bool(j, "live_feed", false) ? "on" : "off") : ""));
 			} else {
-				row("Viewer", r.message());
+				row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.viewer"), r.message());
 			}
 		}));
 		return 1;
@@ -187,17 +187,17 @@ public final class Commands {
 		ModConfig next = s.config().copy();
 		next.serverUrl = chk.baseUrl();
 		s.applyConfig(next);
-		Chat.ok("Server set to " + chk.baseUrl());
+		Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.server.set", chk.baseUrl()));
 		return 1;
 	}
 
 	private static int token(FlipService s, CommandContext<FabricClientCommandSource> c) {
 		String t = StringArgumentType.getString(c, "token").trim();
-		if (!ServerAddress.looksLikeToken(t)) Chat.warn("That doesn't look like a mod token (they start with fv_). Saved anyway.");
+		if (!ServerAddress.looksLikeToken(t)) Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.token.odd"));
 		ModConfig next = s.config().copy();
 		next.token = t;
 		s.applyConfig(next);
-		Chat.ok("Mod token saved: " + ModConfig.maskToken(t) + ". It isn't kept in your chat history.");
+		Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.token.saved", ModConfig.maskToken(t)));
 		return 1;
 	}
 
@@ -210,10 +210,10 @@ public final class Commands {
 			JsonElement active = r.json().get("active");
 			JsonArray list = Json.arr(r.json(), "profiles");
 			if (list == null || list.isEmpty()) {
-				Chat.info("No flip profiles yet: make one in the web page.");
+				Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.profiles.none"));
 				return;
 			}
-			Chat.send(Chat.prefix().append(Component.literal("Flip profiles (click to switch)").withStyle(ChatFormatting.WHITE)));
+			Chat.send(Chat.prefix().append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.profiles.title")).withStyle(ChatFormatting.WHITE)));
 			for (JsonElement e : list) {
 				if (!e.isJsonObject()) continue;
 				JsonObject p = e.getAsJsonObject();
@@ -226,7 +226,7 @@ public final class Commands {
 				if (pid >= 0) {
 					String label = io.github.donttemptfate.fatescommon.text.LegacyText.strip(name);
 					line.withStyle(st -> st.withClickEvent(new ClickEvent.RunCommand("/ff profile " + pid))
-							.withHoverEvent(new HoverEvent.ShowText(Component.literal("Switch to " + label))));
+							.withHoverEvent(new HoverEvent.ShowText(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.profiles.switch_to", label)))));
 				}
 				Chat.send(line);
 			}
@@ -240,7 +240,7 @@ public final class Commands {
 			if (r.ok()) {
 				JsonObject p = Json.obj(r.json(), "profile");
 				String pn = p != null ? Json.str(p, "name") : Json.str(r.json(), "name");
-				Chat.ok(n.equalsIgnoreCase("off") ? "Flip profile off: no flips will be sent." : "Switched to " + (pn != null ? pn : n) + ".");
+				Chat.ok(n.equalsIgnoreCase("off") ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.profile.off") : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.profile.switched", pn != null ? pn : n));
 				s.refreshChatSettings();
 			} else {
 				Chat.error(r.message());
@@ -252,10 +252,10 @@ public final class Commands {
 	private static int recent(FlipService s) {
 		List<FlipEvent> list = s.recentFlips();
 		if (list.isEmpty()) {
-			Chat.info("No flips yet this session.");
+			Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.recent.none"));
 			return 1;
 		}
-		Chat.send(Chat.prefix().append(Component.literal("Recent flips (click to open)").withStyle(ChatFormatting.WHITE)));
+		Chat.send(Chat.prefix().append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.recent.title")).withStyle(ChatFormatting.WHITE)));
 		Function<FlipEvent, String> profit = f -> Double.isNaN(f.safeProfit()) ? "" : " +" + Coins.format(f.safeProfit());
 		for (int i = 0; i < Math.min(8, list.size()); i++) {
 			FlipEvent f = list.get(i);

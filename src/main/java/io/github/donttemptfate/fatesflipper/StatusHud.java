@@ -44,7 +44,7 @@ public final class StatusHud {
 						try {
 							if (!now.equals(lastShown) || lastCard == null) {
 								Card card = new Card(0.80f, 0, 260).add(new Card.Status(
-										text.replace("Fates Flipper: ", "FATES · ").toUpperCase(Locale.ROOT), color, null));
+										io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.look", text).toUpperCase(Locale.ROOT), color, null));
 								if (detail != null) card.add(new Card.Text(Ui.t(detail, Ui.Role.SMALL, Ui.GRAY), Ui.Role.SMALL, 0, 3));
 								lastCard = card;
 								lastShown = now;
@@ -55,6 +55,7 @@ public final class StatusHud {
 							// fall back to the plain line below
 						}
 					}
+					text = io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.plain", text);
 					int w = mc.font.width(text) + 6;
 					g.fill(2, 2, 2 + w, 4 + mc.font.lineHeight + 2, 0x90000000);
 					g.text(mc.font, text, 5, 5, color, true);
@@ -68,16 +69,16 @@ public final class StatusHud {
 
 	static String text(FlipService service) {
 		if (!service.config().alerts || !service.active()) return null;
-		if (service.updateRequired() != null) return "Fates Flipper: update required";
+		if (service.updateRequired() != null) return io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.update");
 		long since = System.currentTimeMillis() - service.stateChangedAtMs();
 		return switch (service.streamState()) {
 			case CONNECTED -> since < SHOW_CONNECTED_MS
-					? "Fates Flipper: connected" + (service.profileName() != null ? " · " + service.profileName() : "")
+					? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.connected") + (service.profileName() != null ? " · " + service.profileName() : "")
 					: null;
-			case CONNECTING -> since > 3_000 ? "Fates Flipper: connecting…" : null;
-			case RETRYING -> "Fates Flipper: offline, reconnecting";
-			case STOPPED -> "Fates Flipper: stopped";
-			case WAITING -> "Fates Flipper: not set up (/ff config)";
+			case CONNECTING -> since > 3_000 ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.connecting") : null;
+			case RETRYING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.retrying");
+			case STOPPED -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.stopped");
+			case WAITING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.waiting");
 			case OFF -> null;
 		};
 	}

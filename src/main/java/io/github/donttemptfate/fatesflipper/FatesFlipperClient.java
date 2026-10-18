@@ -44,6 +44,11 @@ public final class FatesFlipperClient implements ClientModInitializer {
 				.map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("dev");
 		ModConfig config = ModConfig.load(FabricLoader.getInstance().getConfigDir().resolve("fatesflipper.json"));
 		Minecraft mc = Minecraft.getInstance();
+		// the player's language (and resource packs) can replace any of the mod's text (audit B-6)
+		io.github.donttemptfate.fatesflipper.core.Tr.setLookup(key -> {
+			var lang = net.minecraft.locale.Language.getInstance();
+			return lang.has(key) ? lang.getOrDefault(key) : null;
+		});
 		service = new FlipService(mc, config, version);
 
 		Keys.register();

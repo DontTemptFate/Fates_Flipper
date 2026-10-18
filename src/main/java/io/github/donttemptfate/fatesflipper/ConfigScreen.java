@@ -15,9 +15,9 @@ import java.util.function.Function;
 
 /** Settings: server address, mod token and toggles. Opened with /ff config or its key. */
 public final class ConfigScreen extends Screen {
-	public static final String CURSOR_ASSIST_RISK =
-			"Cursor assist moves the cursor onto Buy, then Confirm, once per auction you open from a flip. "
-					+ "It never clicks. Hypixel doesn't certify mods: use at your own risk.";
+	public static String cursorAssistRisk() {
+		return io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.cursor_assist_risk");
+	}
 
 	/** Layout: everything fits in 220 scaled pixels (480p at GUI scale 2), centred when taller. */
 	private static final int W = 330;
@@ -33,7 +33,7 @@ public final class ConfigScreen extends Screen {
 	private int messageColor = 0xFFAAAAAA;
 
 	public ConfigScreen(Screen parent, FlipService service) {
-		super(Component.literal("Fates Flipper settings"));
+		super(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.title")));
 		this.parent = parent;
 		this.service = service;
 		this.draft = service.config().copy();
@@ -48,53 +48,53 @@ public final class ConfigScreen extends Screen {
 		int x = (this.width - W) / 2;
 		int t = top();
 
-		server = new EditBox(this.font, x, t + 34, W, 16, Component.literal("Server address"));
+		server = new EditBox(this.font, x, t + 34, W, 16, Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.server")));
 		server.setMaxLength(200);
 		server.setValue(draft.serverUrl);
 		server.setHint(Component.literal("https://your-viewer-address"));
 		addRenderableWidget(server);
 
 		// hidden until "Show" (audit F-S1: streams and screenshots never show the token by accident)
-		token = new EditBox(this.font, x, t + 64, W - 56, 16, Component.literal("Mod token"));
+		token = new EditBox(this.font, x, t + 64, W - 56, 16, Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.token")));
 		token.setMaxLength(300);
 		token.setValue(draft.token);
 		token.setHint(Component.literal("fv_… (web page → account menu → Mod tokens)"));
 		token.visible = draft.token.isBlank() || tokenShown;
 		addRenderableWidget(token);
-		addRenderableWidget(Button.builder(Component.literal(token.visible ? "Hide" : "Show"), b -> {
+		addRenderableWidget(Button.builder(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr(token.visible ? "fatesflipper.settings.hide" : "fatesflipper.settings.show")), b -> {
 			tokenShown = !token.visible;
 			token.visible = tokenShown;
-			b.setMessage(Component.literal(token.visible ? "Hide" : "Show"));
+			b.setMessage(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr(token.visible ? "fatesflipper.settings.hide" : "fatesflipper.settings.show")));
 		}).bounds(x + W - 50, t + 62, 50, 20).build());
 
 		int col = (W - 12) / 3;
 		int y = t + 96;
 		int[] cx = {x, x + col + 6, x + 2 * (col + 6)};
-		toggle(cx[0], y, col, "Flip alerts", c -> c.alerts, c -> c.alerts = !c.alerts);
-		toggle(cx[1], y, col, "Alert sound", c -> c.sound, c -> c.sound = !c.sound);
-		toggle(cx[2], y, col, "Hypixel only", c -> c.onlyOnHypixel, c -> c.onlyOnHypixel = !c.onlyOnHypixel);
+		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.alerts"), c -> c.alerts, c -> c.alerts = !c.alerts);
+		toggle(cx[1], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.sound"), c -> c.sound, c -> c.sound = !c.sound);
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.hypixel"), c -> c.onlyOnHypixel, c -> c.onlyOnHypixel = !c.onlyOnHypixel);
 		y += 20;
-		toggle(cx[0], y, col, "Price tooltips", c -> c.tooltips, c -> c.tooltips = !c.tooltips);
-		toggle(cx[1], y, col, "Auction overlay", c -> c.auctionOverlay, c -> c.auctionOverlay = !c.auctionOverlay);
-		toggle(cx[2], y, col, "Status display", c -> c.hudStatus, c -> c.hudStatus = !c.hudStatus);
+		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.tooltips"), c -> c.tooltips, c -> c.tooltips = !c.tooltips);
+		toggle(cx[1], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.overlay"), c -> c.auctionOverlay, c -> c.auctionOverlay = !c.auctionOverlay);
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.hud"), c -> c.hudStatus, c -> c.hudStatus = !c.hudStatus);
 		y += 20;
-		toggle(cx[0], y, col, "Fates look", c -> c.fatesLook, c -> c.fatesLook = !c.fatesLook);
-		toggle(cx[1], y, col, "Fates tooltips", c -> c.fatesTooltips, c -> c.fatesTooltips = !c.fatesTooltips);
-		toggle(cx[2], y, col, "Chakra font", c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
+		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.look"), c -> c.fatesLook, c -> c.fatesLook = !c.fatesLook);
+		toggle(cx[1], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.fatestooltips"), c -> c.fatesTooltips, c -> c.fatesTooltips = !c.fatesTooltips);
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.chakra"), c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
 		y += 20;
-		toggle(cx[0], y, col, "Key again closes", c -> c.pressAgainToClose, c -> c.pressAgainToClose = !c.pressAgainToClose);
+		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.closekey"), c -> c.pressAgainToClose, c -> c.pressAgainToClose = !c.pressAgainToClose);
 		// turning it on needs /ff cursorassist on + CONFIRM (Fate, 2026-10-18); off works here
-		toggle(cx[1], y, col, "Cursor assist", c -> c.cursorAssist, c -> {
+		toggle(cx[1], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.cursorassist"), c -> c.cursorAssist, c -> {
 			if (c.cursorAssist) c.cursorAssist = false;
-			else setMessage("To turn cursor assist on, type /ff cursorassist on (it asks you to confirm).", 0xFFFFAA33);
+			else setMessage(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.ca.how"), 0xFFFFAA33);
 		});
-		toggle(cx[2], y, col, "SkyBlock only", c -> c.onlyInSkyBlock, c -> c.onlyInSkyBlock = !c.onlyInSkyBlock);
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.skyblock"), c -> c.onlyInSkyBlock, c -> c.onlyInSkyBlock = !c.onlyInSkyBlock);
 
 		int third = (W - 12) / 3;
 		int by = t + H - 20;
-		addRenderableWidget(Button.builder(Component.literal("Test connection"), b -> test()).bounds(x, by, third, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Save"), b -> save()).bounds(x + third + 6, by, third, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose()).bounds(x + 2 * (third + 6), by, third, 20).build());
+		addRenderableWidget(Button.builder(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.test")), b -> test()).bounds(x, by, third, 20).build());
+		addRenderableWidget(Button.builder(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.save")), b -> save()).bounds(x + third + 6, by, third, 20).build());
+		addRenderableWidget(Button.builder(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.cancel")), b -> onClose()).bounds(x + 2 * (third + 6), by, third, 20).build());
 	}
 
 	private void toggle(int x, int y, int w, String label, Function<ModConfig, Boolean> get, Consumer<ModConfig> flip) {
@@ -107,7 +107,7 @@ public final class ConfigScreen extends Screen {
 
 	private static Component label(String label, boolean on) {
 		return io.github.donttemptfate.fatescommon.ui.Ui.t(label + ": ", io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0xFFFFFF)
-				.append(io.github.donttemptfate.fatescommon.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY,
+				.append(io.github.donttemptfate.fatescommon.ui.Ui.t(io.github.donttemptfate.fatesflipper.core.Tr.tr(on ? "fatesflipper.toggle.on" : "fatesflipper.toggle.off"), io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY,
 						on ? 0x55FF55 : 0xFF5555));
 	}
 
@@ -139,15 +139,15 @@ public final class ConfigScreen extends Screen {
 		ModConfig next = collect();
 		if (next == null) return;
 		if (!next.isReady()) {
-			setMessage("Fill in the server address and the mod token first.", 0xFFFFAA33);
+			setMessage(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.fill"), 0xFFFFAA33);
 			return;
 		}
-		setMessage("Testing…", 0xFFAAAAAA);
+		setMessage(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.testing"), 0xFFAAAAAA);
 		ViewerApi probe = new ViewerApi(() -> next, "test", service.api().http());
 		probe.ping().thenAccept(r -> this.minecraft.execute(() -> {
 			if (r.ok()) {
 				String profile = Json.str(Json.obj(r.json(), "profile"), "name");
-				setMessage("Works: viewer v" + Json.str(r.json(), "version") + (profile != null ? ", profile " + profile : "") + ". Press Save.", 0xFF55FF77);
+				setMessage(profile != null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.works_profile", Json.str(r.json(), "version"), profile) : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.works", Json.str(r.json(), "version")), 0xFF55FF77);
 			} else {
 				setMessage(r.message(), 0xFFFF5555);
 			}
@@ -174,19 +174,19 @@ public final class ConfigScreen extends Screen {
 		int x = (this.width - W) / 2;
 		int t = top();
 		new io.github.donttemptfate.fatescommon.ui.Card.Line(
-				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg("FATES FLIPPER", io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.PINK)),
-				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg("SETTINGS", io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.GRAY)))
+				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.head"), io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.PINK)),
+				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.head.settings"), io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.GRAY)))
 				.draw(g, x, t + 2, W);
-		rule(g, "SERVER ADDRESS", x, t + 22);
-		rule(g, "MOD TOKEN · NEVER SHARE IT", x, t + 52);
+		rule(g, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.rule.server"), x, t + 22);
+		rule(g, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.rule.token"), x, t + 52);
 		if (!token.visible) {
 			new io.github.donttemptfate.fatescommon.ui.Card.Text(
 					io.github.donttemptfate.fatescommon.ui.Ui.t(ModConfig.maskToken(token.getValue()), io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0xFFAAAAAA),
 					io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0, 1).draw(g, x + 4, t + 68, W - 60);
 		}
-		rule(g, "DISPLAY & ALERTS", x, t + 84);
+		rule(g, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.rule.display"), x, t + 84);
 		int ty = t + 177;
-		String text = message.isEmpty() ? CURSOR_ASSIST_RISK : message;
+		String text = message.isEmpty() ? cursorAssistRisk() : message;
 		int color = message.isEmpty() ? 0xFFFFAA00 : messageColor;
 		new io.github.donttemptfate.fatescommon.ui.Card.Text(
 				io.github.donttemptfate.fatescommon.ui.Ui.t(text, io.github.donttemptfate.fatescommon.ui.Ui.Role.SMALL, color),
