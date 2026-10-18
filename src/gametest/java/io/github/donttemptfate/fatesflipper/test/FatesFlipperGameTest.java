@@ -586,11 +586,14 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 	/** The newest chat lines as plain text (read by reflection: test only). */
 	static String chatText(net.minecraft.client.Minecraft mc) {
 		try {
-			Object chat = null;
-			for (java.lang.reflect.Field f : mc.gui.getClass().getDeclaredFields()) {
-				if (net.minecraft.client.gui.components.ChatComponent.class.isAssignableFrom(f.getType())) {
+			// the chat component sits on Gui or, in 26.x, on Gui.hud
+			Object chat = findChat(mc.gui);
+			if (chat == null) {
+				for (java.lang.reflect.Field f : mc.gui.getClass().getDeclaredFields()) {
+					if (f.getType().isPrimitive() || !f.getType().getName().startsWith("net.minecraft.client.gui")) continue;
 					f.setAccessible(true);
-					chat = f.get(mc.gui);
+					Object inner = f.get(mc.gui);
+					if (inner != null && (chat = findChat(inner)) != null) break;
 				}
 			}
 			java.lang.reflect.Field all = net.minecraft.client.gui.components.ChatComponent.class.getDeclaredField("allMessages");
@@ -606,5 +609,16 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static Object findChat(Object o) throws IllegalAccessException {
+		for (java.lang.reflect.Field f : o.getClass().getDeclaredFields()) {
+			if (net.minecraft.client.gui.components.ChatComponent.class.isAssignableFrom(f.getType())) {
+				f.setAccessible(true);
+				Object v = f.get(o);
+				if (v != null) return v;
+			}
+		}
+		return null;
 	}
 }
