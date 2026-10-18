@@ -167,6 +167,11 @@ public final class Cards {
 
 	/** The card shown when hovering a flip alert in chat (design 2.3). */
 	public static Card flipHover(FlipEvent f) {
+		return flipHover(f, false);
+	}
+
+	/** {@code withLore}: the profile's "lore on hover" (the item's lore under the card, when the viewer sends it). */
+	public static Card flipHover(FlipEvent f, boolean withLore) {
 		Card c = new Card(0.94f, 150, 172).gap(3);
 		String listed = f.firstSeenAt() > 0 ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.listed", up(Coins.age(System.currentTimeMillis() - f.firstSeenAt()))) : null;
 		c.add(new Line(List.of(seg(LegacyText.strip(f.name()), Role.NAME, Ui.WHITE)),
@@ -192,7 +197,11 @@ public final class Cards {
 		if (!Double.isNaN(f.volumePerDay())) meta.append(" · ").append(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.per_day", String.format(Locale.ROOT, "%.0f", f.volumePerDay())));
 		c.add(Line.of(seg(f.confidence() == null ? "?" : up(f.confidence()), Role.BODY_BOLD, confColor(f.confidence())),
 				seg(meta.toString(), Role.SMALL, Ui.GRAY)));
-		c.space(1).add(Line.of(seg("▶ CLICK TO OPEN THE AUCTION", Role.LABEL, Ui.YELLOW)));
+		if (withLore && !f.lore().isEmpty()) {
+			c.add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.item"), Ui.GRAY, null));
+			for (String l : f.lore()) c.add(new io.github.donttemptfate.fatescommon.ui.Card.Text(io.github.donttemptfate.fatesflipper.Chat.fromLegacy(l), Role.SMALL, 0, 2));
+		}
+		c.space(1).add(Line.of(seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.click_open"), Role.LABEL, Ui.YELLOW)));
 		return c;
 	}
 

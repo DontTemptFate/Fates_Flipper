@@ -91,30 +91,35 @@ public final class AuctionOverlay {
 			if (state.opened == null) return; // not a flip window: leave it completely alone
 			State st = state;
 			ScreenEvents.afterExtract(screen).register((s, g, mx, my, delta) -> {
+				if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.OVERLAY)) return;
 				try {
 					decide(acs, st);
 					if (st.match != Boolean.TRUE || !service.config().auctionOverlay) return;
 					draw(service, acs, st, g, client.font);
 				} catch (RuntimeException e) {
-					// drawing must never crash the game
+					io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.OVERLAY, e); // drawing must never crash the game
 				}
 			});
 			ScreenEvents.afterTick(screen).register(s -> {
+				if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.CURSOR)) return;
 				try {
 					decide(acs, st);
 					if (st.match == Boolean.TRUE) cursorAssist(service, client, acs, st);
 				} catch (RuntimeException e) {
 					st.cursorDone = true;
+					io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.CURSOR, e);
 				}
 			});
 			// Press an open-flip key again to close this flip's window (like Esc). One press, one action.
 			ScreenKeyboardEvents.allowKeyPress(screen).register((s, event) -> {
+				if (io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.CLOSE_KEY)) return true;
 				try {
 					if (st.match != Boolean.TRUE || !service.config().pressAgainToClose) return true;
 					if (!matches(Keys.openBest, event) && !matches(Keys.openSafest, event)) return true;
 					service.closeFlipWindow(s);
 					return false;
 				} catch (RuntimeException e) {
+					io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.CLOSE_KEY, e);
 					return true;
 				}
 			});
@@ -130,6 +135,7 @@ public final class AuctionOverlay {
 					service.closeFlipWindow(s);
 					return false;
 				} catch (RuntimeException e) {
+					io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.CLOSE_KEY, e);
 					return true;
 				}
 			});
@@ -406,7 +412,7 @@ public final class AuctionOverlay {
 			if (!Double.isNaN(f.volumePerDay())) meta.append(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.per_day", String.format(Locale.ROOT, "%.1f", f.volumePerDay())));
 			if (f.firstSeenAt() > 0) meta.append(meta.length() > 0 ? " · " : "").append(Coins.age(System.currentTimeMillis() - f.firstSeenAt()));
 			if (meta.length() > 0) lines.add(new Line(meta.toString(), 0xFFAAAAAA));
-			if (f.dupe() != null) lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.dupe", f.dupe().toUpperCase(Locale.ROOT)), 0xFFFF5555));
+			if (f.dupe() != null) lines.add(new Line("§l" + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.duped", f.dupe().toUpperCase(Locale.ROOT)), 0xFFFF5555));
 		}
 		JsonObject price = service.lastOpenedPrice();
 		JsonArray sales = Json.arr(price, "recent_sales");

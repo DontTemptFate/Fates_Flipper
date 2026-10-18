@@ -50,6 +50,15 @@ public final class FatesFlipperClient implements ClientModInitializer {
 			return lang.has(key) ? lang.getOrDefault(key) : null;
 		});
 		service = new FlipService(mc, config, version);
+		// safe mode: log a failing feature's first error, tell the player once when it switches off
+		io.github.donttemptfate.fatesflipper.core.SafeMode.setListener((f, err) -> {
+			if (err != null) {
+				LOG.warn("Fates Flipper: {} failed (safe mode counts it)", f.id, err);
+			} else {
+				LOG.warn("Fates Flipper: {} kept failing and is off until restart or /ff safemode reset", f.id);
+				mc.execute(() -> Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.tripped", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.f." + f.id))));
+			}
+		});
 
 		Keys.register();
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> Commands.register(dispatcher, service));

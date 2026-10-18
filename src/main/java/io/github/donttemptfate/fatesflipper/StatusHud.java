@@ -39,7 +39,7 @@ public final class StatusHud {
 					FlipStream.State st = service.streamState();
 					boolean bad = service.updateRequired() != null || st == FlipStream.State.STOPPED;
 					int color = st == FlipStream.State.CONNECTED && !bad ? Ui.GREEN : bad ? Ui.RED : Ui.ORANGE;
-					Shown now = new Shown(text, detail, color, service.config().fatesLook);
+					Shown now = new Shown(text, detail, color, service.config().fatesLook && !io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.HUD));
 					if (now.look) {
 						try {
 							if (!now.equals(lastShown) || lastCard == null) {
@@ -52,7 +52,7 @@ public final class StatusHud {
 							lastCard.draw(g, 6, 6, 1f);
 							return;
 						} catch (RuntimeException e) {
-							// fall back to the plain line below
+							io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.HUD, e); // fall back to the plain line below
 						}
 					}
 					text = io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.plain", text);

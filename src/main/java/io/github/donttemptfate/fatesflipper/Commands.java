@@ -37,6 +37,16 @@ public final class Commands {
 					FatesFlipperClient.openScreenNextTick(parent -> new ConfigScreen(parent, s));
 					return 1;
 				}))
+				.then(ClientCommands.literal("safemode").executes(c -> {
+					var off = io.github.donttemptfate.fatesflipper.core.SafeMode.switchedOff();
+					if (off.isEmpty()) Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.none"));
+					else Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.list", String.join(", ", off.stream().map(f -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.f." + f.id)).toList())));
+					return 1;
+				}).then(ClientCommands.literal("reset").executes(c -> {
+					io.github.donttemptfate.fatesflipper.core.SafeMode.reset();
+					Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.reset"));
+					return 1;
+				})))
 				.then(ClientCommands.literal("reconnect").executes(c -> {
 					s.reconnect();
 					Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.reconnecting"));
@@ -156,6 +166,7 @@ public final class Commands {
 				{"/ff cursorassist on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.13")},
 				{"/ff reconnect", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.14")},
 				{"/ff verify", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.verify")},
+				{"/ff safemode [reset]", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.safemode")},
 		};
 		for (String[] r : rows) {
 			Chat.send(Component.literal("  " + r[0]).withStyle(ChatFormatting.YELLOW)
@@ -185,6 +196,8 @@ public final class Commands {
 		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.toggles"), "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
 				+ ", hud " + onOff(c.hudStatus) + ", close key " + onOff(c.pressAgainToClose) + ", cursor assist " + onOff(c.cursorAssist)
 				+ ", look " + onOff(c.fatesLook) + ", Fates tooltips " + onOff(c.fatesTooltips) + ", font " + (c.chakraFont ? "Chakra" : "Minecraft") + ", theme " + c.theme);
+		var safeOff = io.github.donttemptfate.fatesflipper.core.SafeMode.switchedOff();
+		if (!safeOff.isEmpty()) row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.safe"), String.join(", ", safeOff.stream().map(f -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.f." + f.id)).toList()));
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();
@@ -292,7 +305,7 @@ public final class Commands {
 					.append(Component.literal(" " + Coins.format(f.price())).withStyle(ChatFormatting.YELLOW))
 					.append(Component.literal(profit.apply(f)).withStyle(ChatFormatting.GREEN));
 			line.withStyle(st -> st.withClickEvent(new ClickEvent.RunCommand("/ff open " + f.auctionId()))
-					.withHoverEvent(new HoverEvent.ShowText(Alerts.details(f))));
+					.withHoverEvent(new HoverEvent.ShowText(Alerts.details(f, s.chatPrefs().loreOnHover()))));
 			Chat.send(line);
 		}
 		return 1;

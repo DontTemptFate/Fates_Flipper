@@ -29,6 +29,8 @@ final class FakeViewer {
 	final AtomicInteger unauthorized = new AtomicInteger();
 	final AtomicInteger priceCalls = new AtomicInteger();
 	final AtomicInteger apiProfilesCalls = new AtomicInteger();
+	final AtomicInteger whoamiChallenges = new AtomicInteger();
+	final AtomicInteger whoamiPosts = new AtomicInteger();
 	final java.util.concurrent.atomic.AtomicReference<String> lastEventIdHeader = new java.util.concurrent.atomic.AtomicReference<>();
 	private final HttpServer server;
 
@@ -61,6 +63,7 @@ final class FakeViewer {
 		return "{\"uuid\":\"" + id + "\",\"name\":\"" + name + "\",\"rarity\":\"LEGENDARY\",\"price\":" + price
 				+ ",\"profit\":" + (profit + profit / 2) + ",\"safe_profit\":" + profit + ",\"safe_pct\":0.08,\"safe_resale\":" + (price + profit * 2)
 				+ ",\"dupe\":null,\"first_seen_at\":" + (System.currentTimeMillis() - 4_000)
+				+ ",\"seller_name\":\"Test_Seller\",\"lore\":[\"§7Damage: §c+260\",\"§7Intelligence: §a+350\",\"§6§lLEGENDARY SWORD\"]"
 				+ ",\"summary\":\"5★ · Wisdom V\",\"estimate\":{\"confidence\":\"HIGH\",\"resale\":" + (price + profit * 2)
 				+ ",\"volume_per_day\":14.2,\"exact\":{\"n_used\":23}}}";
 	}
@@ -82,7 +85,15 @@ final class FakeViewer {
 		switch (path) {
 			case "/mod/ping" -> json(ex, 200, "{\"ok\":true,\"version\":\"0.19.0-test\",\"fp_version\":4,\"collector_ok\":true,\"latest_card_at\":0,\"live_feed\":true,\"profile\":{\"id\":1,\"name\":\"Test profile\"},"
 					+ "\"mod_min_version\":\"0.1.0\",\"mod_latest_version\":\"9.9.9\",\"mod_download_url\":\"https://example.com/fates-flipper\"}");
-			case "/mod/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"color\":\"#ffaa00\",\"chat\":{\"sound\":true}}]}");
+			case "/mod/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"color\":\"#ffaa00\",\"chat\":{\"sound\":true,\"countdown\":true,\"seller_button\":true,\"lore_on_hover\":true,\"just_profit\":false}}]}");
+			case "/mod/whoami/challenge" -> {
+				whoamiChallenges.incrementAndGet();
+				json(ex, 200, "{\"server_id\":\"0123456789abcdef0123456789abcdef01234567\",\"expires_in_s\":120}");
+			}
+			case "/mod/whoami" -> {
+				whoamiPosts.incrementAndGet();
+				json(ex, 400, "{\"error\":\"Mojang says no\"}");
+			}
 			case "/api/profiles" -> {
 				apiProfilesCalls.incrementAndGet();
 				json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"settings\":{\"chat\":{\"sound\":true}}}]}");

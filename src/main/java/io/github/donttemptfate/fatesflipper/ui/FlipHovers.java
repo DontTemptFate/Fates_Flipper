@@ -36,12 +36,13 @@ public final class FlipHovers {
 		FlipService service = FatesFlipperClient.service();
 		if (service == null || !service.config().fatesLook) return false;
 		FlipEvent f = flipFor(style);
-		if (f == null) return false;
+		if (f == null || io.github.donttemptfate.fatesflipper.core.SafeMode.off(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.HOVER)) return false;
 		try {
 			g.nextStratum();
-			Cards.drawAtMouse(g, Cards.flipHover(f), mouseX, mouseY, g.guiWidth(), g.guiHeight());
+			Cards.drawAtMouse(g, Cards.flipHover(f, service.chatPrefs().loreOnHover()), mouseX, mouseY, g.guiWidth(), g.guiHeight());
 			return true;
 		} catch (RuntimeException e) {
+			io.github.donttemptfate.fatesflipper.core.SafeMode.error(io.github.donttemptfate.fatesflipper.core.SafeMode.Feature.HOVER, e);
 			return false;
 		}
 	}

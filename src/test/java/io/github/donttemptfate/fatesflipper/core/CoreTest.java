@@ -440,4 +440,45 @@ public class CoreTest {
 		assertEquals("Server set to x", Tr.tr("fatesflipper.cmd.server.set", "x"));
 		assertEquals("no.such.key", Tr.tr("no.such.key"));
 	}
+
+	@Test
+	public void safeModeTripsAfterRepeatedErrors() {
+		SafeMode.reset();
+		java.util.List<String> heard = new java.util.ArrayList<>();
+		SafeMode.setListener((f, e) -> heard.add(f.id + (e == null ? ":off" : ":first")));
+		RuntimeException boom = new RuntimeException("boom");
+		long t = 1_000_000;
+		for (int i = 0; i < SafeMode.LIMIT - 1; i++) assertFalse(SafeMode.error(SafeMode.Feature.OVERLAY, boom, t + i));
+		assertFalse(SafeMode.off(SafeMode.Feature.OVERLAY));
+		assertTrue(SafeMode.error(SafeMode.Feature.OVERLAY, boom, t + 10));
+		assertTrue(SafeMode.off(SafeMode.Feature.OVERLAY));
+		assertFalse(SafeMode.off(SafeMode.Feature.TOOLTIPS));
+		assertEquals(java.util.List.of("overlay:first", "overlay:off"), heard);
+		// spread-out errors never trip
+		for (int i = 0; i < 20; i++) SafeMode.error(SafeMode.Feature.HUD, boom, t + i * (SafeMode.WINDOW_MS / 2));
+		assertFalse(SafeMode.off(SafeMode.Feature.HUD));
+		SafeMode.reset();
+		assertTrue(SafeMode.switchedOff().isEmpty());
+		SafeMode.setListener(null);
+		for (SafeMode.Feature f : SafeMode.Feature.values()) assertTrue(f.id, Tr.has("fatesflipper.safe.f." + f.id));
+	}
+
+	@Test
+	public void chatPrefsAndCardExtras() {
+		assertEquals(ChatPrefs.DEFAULT, ChatPrefs.of(null));
+		ChatPrefs p = ChatPrefs.of(Json.parseObject("{\"sound\":false,\"countdown\":true,\"seller_button\":true,\"lore_on_hover\":true,\"just_profit\":true}"));
+		assertFalse(p.sound());
+		assertTrue(p.countdown() && p.sellerButton() && p.loreOnHover() && p.justProfit());
+		String id = "0123456789abcdef0123456789abcdef";
+		FlipEvent f = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"name\":\"Hyperion\",\"price\":1000000,\"safe_profit\":250000,"
+				+ "\"dupe\":\"duped\",\"seller_name\":\"Some_Seller\",\"lore\":[\"§7Damage: §c+260\",\"§6§lLEGENDARY SWORD\"]}}"));
+		assertEquals("Some_Seller", f.seller());
+		assertEquals(2, f.lore().size());
+		assertTrue(f.profitChat().contains("+250k"));
+		assertTrue(f.profitChat().contains("§c§lDUPED?!"));
+		assertTrue(f.fallbackChat().contains("§c§lDUPED?!"));
+		FlipEvent bad = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"seller_name\":\"/pay x 1\"}}"));
+		assertNull(bad.seller());
+		assertTrue(bad.lore().isEmpty());
+	}
 }

@@ -94,6 +94,32 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.waitTicks(20);
 			ctx.takeScreenshot("01b_commands");
 
+			// 1c. profile chat settings (countdown, seller button, lore on hover) and the DUPED?! tag
+			check(ctx.computeOnClient(mc -> service.chatPrefs().sellerButton() && service.chatPrefs().countdown() && service.chatPrefs().loreOnHover()),
+					"chat settings from /mod/profiles not applied");
+			check("Test_Seller".equals(ctx.computeOnClient(mc -> service.recentFlip(FakeViewer.FLIP_ID).seller())), "seller name not read");
+			ctx.runOnClient(mc -> {
+				String duped = "ab" + FakeViewer.FLIP_ID.substring(2);
+				String json = FakeViewer.flip(duped, "Duped Necron's Chestplate", 90_000_000L, 9_000_000L, "/viewauction " + duped)
+						.replace("\"dupe\":null", "\"dupe\":\"duped\"").replace("\"chat\":\"", "\"chat_unused\":\"");
+				service.onFlip(com.google.gson.JsonParser.parseString(json).getAsJsonObject());
+			});
+			ctx.waitTicks(10);
+			check(ctx.computeOnClient(mc -> chatText(mc).contains("[SELLER]")), "no [SELLER] button on the alert");
+			check(ctx.computeOnClient(mc -> chatText(mc).contains("DUPED?!")), "no DUPED?! on a duped alert");
+			ctx.takeScreenshot("01c_chat_options");
+
+			// 1d. /ff verify: nothing runs until CONFIRM; with no real Minecraft login, Mojang refuses and
+			// nothing is posted to the viewer
+			ctx.runOnClient(mc -> run(mc, "ff verify"));
+			ctx.waitTicks(20);
+			check(fake.whoamiChallenges.get() == 0, "/ff verify without CONFIRM contacted the viewer");
+			ctx.runOnClient(mc -> run(mc, "ff verify CONFIRM"));
+			ctx.waitFor(mc -> fake.whoamiChallenges.get() == 1, 400);
+			ctx.waitTicks(100);
+			check(fake.whoamiPosts.get() == 0, "posted to /mod/whoami although Mojang's join check failed");
+			ctx.takeScreenshot("01d_verify"); 
+
 			// 2. price tooltip for an item with a SkyBlock uuid
 			ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
 			CompoundTag tag = new CompoundTag();
@@ -555,5 +581,30 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 
 	private static void check(boolean ok, String message) {
 		if (!ok) throw new AssertionError(message);
+	}
+
+	/** The newest chat lines as plain text (read by reflection: test only). */
+	static String chatText(net.minecraft.client.Minecraft mc) {
+		try {
+			Object chat = null;
+			for (java.lang.reflect.Field f : mc.gui.getClass().getDeclaredFields()) {
+				if (net.minecraft.client.gui.components.ChatComponent.class.isAssignableFrom(f.getType())) {
+					f.setAccessible(true);
+					chat = f.get(mc.gui);
+				}
+			}
+			java.lang.reflect.Field all = net.minecraft.client.gui.components.ChatComponent.class.getDeclaredField("allMessages");
+			all.setAccessible(true);
+			java.util.List<?> msgs = (java.util.List<?>) all.get(chat);
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < Math.min(8, msgs.size()); i++) {
+				Object m = msgs.get(i);
+				var content = (net.minecraft.network.chat.Component) m.getClass().getMethod("content").invoke(m);
+				sb.append(content.getString()).append('\n');
+			}
+			return sb.toString();
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
