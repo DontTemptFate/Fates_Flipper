@@ -154,14 +154,14 @@ public final class PriceTooltips {
 		switch (v.kind()) {
 			case HIDDEN -> {
 			}
-			case LOADING -> lines.add(gray("Fates: loading price…"));
-			case BAZAAR -> lines.add(gray("Fates: Bazaar item, see the Bazaar for prices"));
+			case LOADING -> lines.add(gray(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.loading")));
+			case BAZAAR -> lines.add(gray(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.bazaar")));
 			case FOUND -> addFound(v.data(), lines);
 			case NO_EXACT -> {
-				if (!addRough(v.data(), lines)) lines.add(gray("Fates: no sales of this exact item yet"));
+				if (!addRough(v.data(), lines)) lines.add(gray(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.no_exact")));
 			}
 			case NOT_TRADED -> {
-				if (!addRough(v.data(), lines)) lines.add(gray("Fates: not traded on the AH since tracking started"));
+				if (!addRough(v.data(), lines)) lines.add(gray(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.not_traded")));
 			}
 		}
 	}
@@ -172,7 +172,7 @@ public final class PriceTooltips {
 		double price = Json.num(rough, "price", Double.NaN);
 		if (Double.isNaN(price)) return false;
 		lines.add(Component.literal("Fates ").withStyle(ChatFormatting.GOLD)
-				.append(Component.literal("rough value ~" + Coins.format(price)).withStyle(ChatFormatting.GRAY))
+				.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.rough", Coins.format(price))).withStyle(ChatFormatting.GRAY))
 				.append(Component.literal(" (estimate, not a flip)").withStyle(ChatFormatting.DARK_GRAY)));
 		return true;
 	}
@@ -190,12 +190,12 @@ public final class PriceTooltips {
 		if ((learning || Double.isNaN(market)) && addRough(d, lines)) return;
 		MutableComponent head = Component.literal("Fates ").withStyle(ChatFormatting.GOLD);
 		if (learning || Double.isNaN(market)) {
-			head.append(Component.literal("MIXED".equals(conf) ? "prices split, no estimate" : "learning (too few sales)").withStyle(ChatFormatting.DARK_GRAY));
+			head.append(Component.literal("MIXED".equals(conf) ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.split") : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.learning")).withStyle(ChatFormatting.DARK_GRAY));
 		} else {
-			head.append(Component.literal("value ").withStyle(ChatFormatting.GRAY))
+			head.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.value") + " ").withStyle(ChatFormatting.GRAY))
 					.append(Component.literal(Coins.format(market)).withStyle(ChatFormatting.YELLOW));
 			if (!Double.isNaN(cautious)) {
-				head.append(Component.literal(" · safe ").withStyle(ChatFormatting.GRAY))
+				head.append(Component.literal(" · " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.safe") + " ").withStyle(ChatFormatting.GRAY))
 						.append(Component.literal(Coins.format(cautious)).withStyle(ChatFormatting.YELLOW));
 			}
 			if (conf != null) head.append(Component.literal(" " + conf.toUpperCase(Locale.ROOT)).withStyle(confColor(conf)));
@@ -205,15 +205,15 @@ public final class PriceTooltips {
 		MutableComponent second = Component.empty();
 		boolean any = false;
 		if (!Double.isNaN(lowest)) {
-			second.append(Component.literal("lowest BIN ").withStyle(ChatFormatting.GRAY)).append(Component.literal(Coins.format(lowest)).withStyle(ChatFormatting.YELLOW));
+			second.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.lowest") + " ").withStyle(ChatFormatting.GRAY)).append(Component.literal(Coins.format(lowest)).withStyle(ChatFormatting.YELLOW));
 			any = true;
 		}
 		if (!Double.isNaN(vol)) {
-			second.append(Component.literal((any ? " · " : "") + String.format(Locale.ROOT, "%.1f sold/day", vol)).withStyle(ChatFormatting.GRAY));
+			second.append(Component.literal((any ? " · " : "") + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.sold_day", String.format(Locale.ROOT, "%.1f", vol))).withStyle(ChatFormatting.GRAY));
 			any = true;
 		}
 		if (used > 0) {
-			second.append(Component.literal((any ? " · " : "") + used + " sales").withStyle(ChatFormatting.DARK_GRAY));
+			second.append(Component.literal((any ? " · " : "") + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.sales", used)).withStyle(ChatFormatting.DARK_GRAY));
 			any = true;
 		}
 		if (any) lines.add(Component.literal("  ").append(second));
@@ -221,11 +221,11 @@ public final class PriceTooltips {
 		JsonObject dupe = Json.obj(d, "dupe");
 		String level = Json.str(dupe, "level");
 		if (level != null) level = io.github.donttemptfate.fatescommon.text.LegacyText.strip(level);
-		if (level != null) lines.add(Component.literal("  ⚠ dupe check: " + level).withStyle(ChatFormatting.RED));
+		if (level != null) lines.add(Component.literal("  ⚠ " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.dupe", level)).withStyle(ChatFormatting.RED));
 
 		long last = Json.lng(d, "last_traded_at", 0);
 		if (last > 0 && System.currentTimeMillis() - last > 24 * 3_600_000L) {
-			lines.add(gray("  priced as it was when last traded, " + Coins.age(System.currentTimeMillis() - last) + " ago"));
+			lines.add(gray("  " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.last_traded", Coins.age(System.currentTimeMillis() - last))));
 		}
 	}
 

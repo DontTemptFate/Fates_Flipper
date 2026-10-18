@@ -41,22 +41,22 @@ public final class Alerts {
 		if (f.summary() != null && !f.summary().isBlank()) {
 			c.append(Component.literal(LegacyText.strip(f.summary())).withStyle(ChatFormatting.DARK_GRAY)).append("\n");
 		}
-		line(c, "Price", Coins.format(f.price()), ChatFormatting.YELLOW);
-		if (!Double.isNaN(f.resale())) line(c, "Estimated resale", Coins.format(f.resale()), ChatFormatting.YELLOW);
+		line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.price"), Coins.format(f.price()), ChatFormatting.YELLOW);
+		if (!Double.isNaN(f.resale())) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.resale"), Coins.format(f.resale()), ChatFormatting.YELLOW);
 		if (!Double.isNaN(f.safeProfit())) {
 			String pct = Double.isNaN(f.safePct()) ? "" : " (" + Coins.percent(f.safePct()) + ")";
-			line(c, "Cautious profit", (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct,
+			line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.safe_profit"), (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct,
 					f.safeProfit() >= 0 ? ChatFormatting.GREEN : ChatFormatting.RED);
 		}
-		if (!Double.isNaN(f.expectedProfit())) line(c, "Expected profit", Coins.format(f.expectedProfit()), ChatFormatting.GREEN);
-		if (!Double.isNaN(f.chance())) line(c, "Chance to hit target", Coins.percent(f.chance()), ChatFormatting.AQUA);
+		if (!Double.isNaN(f.expectedProfit())) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.expected"), Coins.format(f.expectedProfit()), ChatFormatting.GREEN);
+		if (!Double.isNaN(f.chance())) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.chance"), Coins.percent(f.chance()), ChatFormatting.AQUA);
 		String conf = f.confidence() == null ? "?" : LegacyText.strip(f.confidence());
-		String sales = f.salesUsed() > 0 ? ", " + f.salesUsed() + " sales" : "";
-		String vol = Double.isNaN(f.volumePerDay()) ? "" : String.format(Locale.ROOT, ", %.1f/day", f.volumePerDay());
-		line(c, "Confidence", conf + sales + vol, ChatFormatting.WHITE);
-		if (f.dupe() != null) line(c, "Dupe check", LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT), ChatFormatting.RED);
-		if (f.firstSeenAt() > 0) line(c, "Listed", Coins.age(System.currentTimeMillis() - f.firstSeenAt()) + " ago", ChatFormatting.GRAY);
-		c.append(Component.literal("Click to open the auction").withStyle(ChatFormatting.GOLD));
+		String sales = f.salesUsed() > 0 ? ", " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.sales", f.salesUsed()) : "";
+		String vol = Double.isNaN(f.volumePerDay()) ? "" : ", " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.per_day", String.format(Locale.ROOT, "%.1f", f.volumePerDay()));
+		line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.confidence"), conf + sales + vol, ChatFormatting.WHITE);
+		if (f.dupe() != null) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.dupe"), LegacyText.strip(f.dupe()).toUpperCase(Locale.ROOT), ChatFormatting.RED);
+		if (f.firstSeenAt() > 0) line(c, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.listed"), io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.ago", Coins.age(System.currentTimeMillis() - f.firstSeenAt())), ChatFormatting.GRAY);
+		c.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.click")).withStyle(ChatFormatting.GOLD));
 		io.github.donttemptfate.fatesflipper.ui.FlipHovers.register(c, f); // shown as the Fates flip card
 		return c;
 	}

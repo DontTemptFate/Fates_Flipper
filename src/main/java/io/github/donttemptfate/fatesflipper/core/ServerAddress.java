@@ -18,7 +18,7 @@ public final class ServerAddress {
 	}
 
 	public static Check check(String input) {
-		if (input == null || input.isBlank()) return new Check(null, "No server address set. Use /ff config or /ff server <address>.");
+		if (input == null || input.isBlank()) return new Check(null, Tr.tr("fatesflipper.addr.none"));
 		String s = input.trim();
 		if (!s.contains("://")) s = "https://" + s;
 		while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
@@ -26,26 +26,26 @@ public final class ServerAddress {
 		try {
 			uri = new URI(s);
 		} catch (Exception e) {
-			return new Check(null, "That isn't a valid address.");
+			return new Check(null, Tr.tr("fatesflipper.addr.invalid"));
 		}
 		String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
 		String host = uri.getHost();
-		if (host == null || host.isBlank()) return new Check(null, "That address has no host name.");
-		if (uri.getRawUserInfo() != null) return new Check(null, "Addresses with a user name or password aren't allowed.");
-		if (uri.getRawQuery() != null || uri.getRawFragment() != null) return new Check(null, "Leave out ? and # parts of the address.");
+		if (host == null || host.isBlank()) return new Check(null, Tr.tr("fatesflipper.addr.no_host"));
+		if (uri.getRawUserInfo() != null) return new Check(null, Tr.tr("fatesflipper.addr.userinfo"));
+		if (uri.getRawQuery() != null || uri.getRawFragment() != null) return new Check(null, Tr.tr("fatesflipper.addr.query"));
 		String path = uri.getRawPath() == null ? "" : uri.getRawPath();
-		if (!path.isEmpty() && !path.equals("/")) return new Check(null, "Use just the address, without a path (e.g. https://flips.example.com).");
+		if (!path.isEmpty() && !path.equals("/")) return new Check(null, Tr.tr("fatesflipper.addr.path"));
 		switch (scheme) {
 			case "https" -> {
 				// fine anywhere
 			}
 			case "http" -> {
 				if (!isPrivateHost(host)) {
-					return new Check(null, "Plain http:// would send your mod token unencrypted. Use https://, or http:// only for this computer, your home network or a Tailscale address.");
+					return new Check(null, Tr.tr("fatesflipper.addr.http"));
 				}
 			}
 			default -> {
-				return new Check(null, "The address must start with https://.");
+				return new Check(null, Tr.tr("fatesflipper.addr.https"));
 			}
 		}
 		String port = uri.getPort() > 0 ? ":" + uri.getPort() : "";

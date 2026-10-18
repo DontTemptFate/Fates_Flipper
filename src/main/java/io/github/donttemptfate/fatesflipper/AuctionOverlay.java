@@ -332,14 +332,14 @@ public final class AuctionOverlay {
 
 	/** The panel's last line: what the button means, in words (not only colour). */
 	static String stateText(ButtonState bs, Slot button, boolean closeKey) {
-		if (bs == null) return "Waiting for the button…";
-		String close = closeKey ? " · key closes" : "";
+		if (bs == null) return io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.waiting_button");
+		String close = closeKey ? " · " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.key_closes") : "";
 		return switch (bs) {
-			case BUYABLE -> "Buy now";
-			case CANT_AFFORD -> "Can't afford";
-			case SOLD -> "Sold" + close;
-			case NOT_YET -> "Not buyable yet";
-			case UNKNOWN -> "Button: " + name(button.getItem());
+			case BUYABLE -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.buy");
+			case CANT_AFFORD -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.cant_afford");
+			case SOLD -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.sold") + close;
+			case NOT_YET -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.not_yet");
+			case UNKNOWN -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.button", name(button.getItem()));
 		};
 	}
 
@@ -391,27 +391,27 @@ public final class AuctionOverlay {
 			Font font, int left, int top, int imageWidth, Slot target, ButtonState bs) {
 		List<Line> lines = new ArrayList<>();
 		FlipEvent f = state.opened.flip();
-		lines.add(new Line("Fates Flipper", GOLD));
+		lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.head"), GOLD));
 		if (f != null) {
 			lines.add(new Line(LegacyText.strip(f.name()), 0xFFFFFFFF));
-			lines.add(new Line("Price " + Coins.format(f.price()), 0xFFFFFF77));
-			if (!Double.isNaN(f.resale())) lines.add(new Line("Resale " + Coins.format(f.resale()), 0xFFFFFF77));
+			lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.price", Coins.format(f.price())), 0xFFFFFF77));
+			if (!Double.isNaN(f.resale())) lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.resale", Coins.format(f.resale())), 0xFFFFFF77));
 			if (!Double.isNaN(f.safeProfit())) {
 				String pct = Double.isNaN(f.safePct()) ? "" : " (" + Coins.percent(f.safePct()) + ")";
-				lines.add(new Line("Profit " + (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct,
+				lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.profit", (f.safeProfit() >= 0 ? "+" : "") + Coins.format(f.safeProfit()) + pct),
 						f.safeProfit() >= 0 ? GREEN : 0xFFFF5555));
 			}
-			lines.add(new Line((f.confidence() == null ? "?" : f.confidence()) + (f.salesUsed() > 0 ? " · " + f.salesUsed() + " sales" : ""), 0xFFCCCCCC));
+			lines.add(new Line((f.confidence() == null ? "?" : f.confidence()) + (f.salesUsed() > 0 ? " · " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.sales", f.salesUsed()) : ""), 0xFFCCCCCC));
 			StringBuilder meta = new StringBuilder();
-			if (!Double.isNaN(f.volumePerDay())) meta.append(String.format(Locale.ROOT, "%.1f/day", f.volumePerDay()));
+			if (!Double.isNaN(f.volumePerDay())) meta.append(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.per_day", String.format(Locale.ROOT, "%.1f", f.volumePerDay())));
 			if (f.firstSeenAt() > 0) meta.append(meta.length() > 0 ? " · " : "").append(Coins.age(System.currentTimeMillis() - f.firstSeenAt()));
 			if (meta.length() > 0) lines.add(new Line(meta.toString(), 0xFFAAAAAA));
-			if (f.dupe() != null) lines.add(new Line("DUPE: " + f.dupe().toUpperCase(Locale.ROOT), 0xFFFF5555));
+			if (f.dupe() != null) lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.dupe", f.dupe().toUpperCase(Locale.ROOT)), 0xFFFF5555));
 		}
 		JsonObject price = service.lastOpenedPrice();
 		JsonArray sales = Json.arr(price, "recent_sales");
 		if (sales != null && !sales.isEmpty()) {
-			lines.add(new Line("Recent sales", 0xFFAAAAAA));
+			lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.recent"), 0xFFAAAAAA));
 			int shown = 0;
 			for (JsonElement e : sales) {
 				if (shown >= 4 || !e.isJsonObject()) break;
@@ -424,12 +424,12 @@ public final class AuctionOverlay {
 				shown++;
 			}
 		} else if (price == null && f == null) {
-			lines.add(new Line("Loading…", 0xFF777777));
+			lines.add(new Line(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.loading"), 0xFF777777));
 		}
 		if (state.kind == Kind.AUCTION_VIEW) {
 			lines.add(new Line(stateText(bs, target, service.config().pressAgainToClose), color(bs)));
 		} else {
-			lines.add(new Line(target == null ? "Waiting for Confirm…" : "Click Confirm", GREEN));
+			lines.add(new Line(target == null ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.waiting_confirm") : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.panel.click_confirm"), GREEN));
 		}
 
 		// Never cover the window: use the wider free side, and shorten lines to fit it.

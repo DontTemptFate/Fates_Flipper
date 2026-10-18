@@ -82,7 +82,7 @@ public final class ItemCard {
 	/** Lines other mods add to the tooltip (prices, pet info…), as they are, so the Fates look never hides them. */
 	static void addMods(Card c, List<Component> extra) {
 		if (extra == null || extra.isEmpty()) return;
-		c.space(2).add(new Rule("MODS", Ui.GRAY, null));
+		c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.item.mods"), Ui.GRAY, null));
 		int n = 0;
 		for (Component line : extra) {
 			if (++n > 24) break; // a runaway tooltip from another mod stays bounded
@@ -131,7 +131,7 @@ public final class ItemCard {
 			else after.add(line);
 		}
 		if (rows.isEmpty() && after.isEmpty()) return;
-		c.space(2).add(new Rule("LISTING", Ui.GRAY, null));
+		c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.item.listing"), Ui.GRAY, null));
 		if (!rows.isEmpty()) c.add(rows);
 		for (Component line : after) c.add(new Text(line, Role.SMALL, 0, 0));
 	}
@@ -206,7 +206,7 @@ public final class ItemCard {
 		int stats = 0;
 		for (Component line : b) if (STAT.matcher(plain(line)).matches() && plain(line).length() <= 48) stats++;
 		if (stats >= Math.max(1, Math.ceil(b.size() * 0.6))) {
-			c.add(new Rule("STATS", Ui.GRAY, null));
+			c.add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.item.stats"), Ui.GRAY, null));
 			Stats s = new Stats(Role.SMALL);
 			for (Component line : b) {
 				Component[] kv = splitAtColon(line);
@@ -222,7 +222,7 @@ public final class ItemCard {
 			for (Component line : b) {
 				if (enchantColor(firstColor(line))) count += plain(line).split(",").length;
 			}
-			c.add(new Rule("ENCHANTS · " + count, Ui.GRAY, null));
+			c.add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.item.enchants", count), Ui.GRAY, null));
 			List<Component> desc = new ArrayList<>();
 			for (Component line : b) {
 				if (enchantColor(firstColor(line))) {

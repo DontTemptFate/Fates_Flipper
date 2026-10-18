@@ -405,4 +405,20 @@ public class CoreTest {
 		assertTrue(ServerAddress.isTokenCommand("ff TOKEN fv_abc"));
 		assertFalse(ServerAddress.isTokenCommand("/ff status"));
 	}
+
+	@Test
+	public void everyTextKeyExists() throws Exception {
+		// every "fatesflipper.x.y" key in the code has English text (audit B-6)
+		java.util.regex.Pattern key = java.util.regex.Pattern.compile("\"(fatesflipper\\.[a-z0-9_]+\\.[a-z0-9_.]*[a-z0-9_])\"");
+		java.util.List<String> missing = new java.util.ArrayList<>();
+		try (var files = java.nio.file.Files.walk(java.nio.file.Path.of("src/main/java"))) {
+			for (java.nio.file.Path f : files.filter(p -> p.toString().endsWith(".java")).toList()) {
+				var m = key.matcher(java.nio.file.Files.readString(f));
+				while (m.find()) if (!Tr.has(m.group(1))) missing.add(f.getFileName() + ": " + m.group(1));
+			}
+		}
+		assertTrue("keys without text: " + missing, missing.isEmpty());
+		assertEquals("Server set to x", Tr.tr("fatesflipper.cmd.server.set", "x"));
+		assertEquals("no.such.key", Tr.tr("no.such.key"));
+	}
 }
