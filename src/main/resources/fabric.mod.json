@@ -13,13 +13,17 @@
 	"icon": "assets/fatesflipper/icon.png",
 	"environment": "client",
 	"entrypoints": {
-		"client": ["io.github.donttemptfate.fatesflipper.FatesFlipperClient"]
+		"client": ["io.github.donttemptfate.fatesflipper.FatesFlipperClient"],
+		"modmenu": ["io.github.donttemptfate.fatesflipper.ModMenuIntegration"]
 	},
 	"mixins": ["fatesflipper.mixins.json"],
 	"depends": {
 		"fabricloader": ">=0.19.3",
 		"minecraft": "${minecraft_dep}",
 		"java": ">=25",
-		"fabric-api": "*"
+		"fabric-api": "${fabric_api_dep}"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }

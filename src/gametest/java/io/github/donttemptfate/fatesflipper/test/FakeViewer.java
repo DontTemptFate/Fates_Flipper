@@ -28,6 +28,8 @@ final class FakeViewer {
 
 	final AtomicInteger unauthorized = new AtomicInteger();
 	final AtomicInteger priceCalls = new AtomicInteger();
+	final AtomicInteger apiProfilesCalls = new AtomicInteger();
+	final java.util.concurrent.atomic.AtomicReference<String> lastEventIdHeader = new java.util.concurrent.atomic.AtomicReference<>();
 	private final HttpServer server;
 
 	private FakeViewer(HttpServer server) {
@@ -78,9 +80,13 @@ final class FakeViewer {
 			return;
 		}
 		switch (path) {
-			case "/mod/ping" -> json(ex, 200, "{\"ok\":true,\"version\":\"0.19.0-test\",\"fp_version\":4,\"collector_ok\":true,\"latest_card_at\":0,\"live_feed\":true,\"profile\":{\"id\":1,\"name\":\"Test profile\"}}");
-			case "/mod/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"color\":\"#ffaa00\"}]}");
-			case "/api/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"settings\":{\"chat\":{\"sound\":true}}}]}");
+			case "/mod/ping" -> json(ex, 200, "{\"ok\":true,\"version\":\"0.19.0-test\",\"fp_version\":4,\"collector_ok\":true,\"latest_card_at\":0,\"live_feed\":true,\"profile\":{\"id\":1,\"name\":\"Test profile\"},"
+					+ "\"mod_min_version\":\"0.1.0\",\"mod_latest_version\":\"9.9.9\",\"mod_download_url\":\"https://example.com/fates-flipper\"}");
+			case "/mod/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"color\":\"#ffaa00\",\"chat\":{\"sound\":true}}]}");
+			case "/api/profiles" -> {
+				apiProfilesCalls.incrementAndGet();
+				json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"settings\":{\"chat\":{\"sound\":true}}}]}");
+			}
 			case "/mod/profile" -> json(ex, 200, "{\"ok\":true,\"profile\":{\"id\":1,\"name\":\"Test profile\"}}");
 			case "/mod/next" -> json(ex, 200, "{\"mode\":\"best\",\"waiting\":0,\"flip\":" + flip(NEXT_ID, "Juju Shortbow", 30_000_000, 3_000_000, "/viewauction " + NEXT_ID) + "}");
 			case "/mod/flips" -> stream(ex);
@@ -123,16 +129,18 @@ final class FakeViewer {
 		}
 	}
 
-	private static void stream(HttpExchange ex) throws IOException {
+	private void stream(HttpExchange ex) throws IOException {
+		String lastId = ex.getRequestHeaders().getFirst("Last-Event-ID");
+		if (lastId != null) lastEventIdHeader.set(lastId);
 		ex.getResponseHeaders().add("Content-Type", "text/event-stream");
 		ex.sendResponseHeaders(200, 0);
 		try (OutputStream out = ex.getResponseBody()) {
 			write(out, "event: profile\ndata: {\"profile\":{\"id\":1,\"name\":\"Test profile\"}}\n\n");
 			Thread.sleep(500);
-			write(out, "event: flip\ndata: " + flip(FLIP_ID, "Heroic Hyperion", 1_150_000_000L, 42_000_000L, "/viewauction " + FLIP_ID) + "\n\n");
+			write(out, "id: 41\nevent: flip\ndata: " + flip(FLIP_ID, "Heroic Hyperion", 1_150_000_000L, 42_000_000L, "/viewauction " + FLIP_ID) + "\n\n");
 			Thread.sleep(300);
 			// a flip whose command isn't /viewauction <id>: the mod must ignore it
-			write(out, "event: flip\ndata: " + flip(EVIL_ID, "Evil Item", 1_000_000L, 500_000L, "/pay attacker 1000000") + "\n\n");
+			write(out, "id: 42\nevent: flip\ndata: " + flip(EVIL_ID, "Evil Item", 1_000_000L, 500_000L, "/pay attacker 1000000") + "\n\n");
 			for (int i = 0; i < 90; i++) {
 				Thread.sleep(2_000);
 				write(out, ": keep-alive\n\n");

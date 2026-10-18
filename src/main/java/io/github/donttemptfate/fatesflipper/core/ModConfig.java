@@ -11,16 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Player settings, saved as {@code config/fatesflipper.json}. The mod token lives here and nowhere
- * else; it is never logged.
+ * Player settings, saved as {@code config/fatesflipper.json}. The mod token is kept apart in
+ * {@code config/fatesflipper-token.txt} (audit F-S1), so sharing the settings file or a modpack's
+ * config folder never shares the token; it is never logged.
  */
 public final class ModConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
 	/** Viewer address, e.g. https://flips.example.com. Empty = not set up yet. */
 	public String serverUrl = "";
-	/** Mod token from the web page (account menu → Mod tokens), starts with fv_. */
-	public String token = "";
+	/** Mod token from the web page (account menu → Mod tokens), starts with fv_. Saved in its own file. */
+	public transient String token = "";
 
 	/** Flip alerts in chat. */
 	public boolean alerts = true;
@@ -47,34 +48,70 @@ public final class ModConfig {
 	public boolean chakraFont = true;
 	/** Only connect while on Hypixel. */
 	public boolean onlyOnHypixel = true;
+	/** Flip alerts only while in SkyBlock (not in lobbies or other games). */
+	public boolean onlyInSkyBlock = true;
+	/** Also alert inside dungeons and Kuudra. */
+	public boolean alertsInDungeons = false;
 
 	public transient Path file;
 
 	public static ModConfig load(Path file) {
 		ModConfig cfg = null;
+		String legacyToken = null;
 		if (Files.isRegularFile(file)) {
 			try {
-				cfg = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), ModConfig.class);
+				String text = Files.readString(file, StandardCharsets.UTF_8);
+				cfg = GSON.fromJson(text, ModConfig.class);
+				com.google.gson.JsonObject raw = Json.parseObject(text);
+				legacyToken = Json.str(raw, "token"); // 0.3.3 and older kept it in this file
 			} catch (Exception e) {
 				cfg = null;
 			}
 		}
 		if (cfg == null) cfg = new ModConfig();
 		if (cfg.serverUrl == null) cfg.serverUrl = "";
-		if (cfg.token == null) cfg.token = "";
 		cfg.file = file;
+		cfg.token = readToken(tokenFile(file));
+		if (cfg.token.isEmpty() && legacyToken != null && !legacyToken.isBlank()) {
+			cfg.token = legacyToken.trim();
+			try {
+				cfg.save(); // moves it to its own file and out of the settings file
+			} catch (IOException ignored) {
+				// keep using it; the next save moves it
+			}
+		}
 		return cfg;
+	}
+
+	static Path tokenFile(Path settings) {
+		return settings.resolveSibling("fatesflipper-token.txt");
+	}
+
+	static String readToken(Path f) {
+		try {
+			if (Files.isRegularFile(f) && Files.size(f) < 4096) return Files.readString(f, StandardCharsets.UTF_8).trim();
+		} catch (IOException ignored) {
+			// treated as no token
+		}
+		return "";
 	}
 
 	public void save() throws IOException {
 		if (file == null) return;
 		Files.createDirectories(file.getParent());
-		Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
-		Files.writeString(tmp, GSON.toJson(this), StandardCharsets.UTF_8);
+		writeAtomic(file, GSON.toJson(this));
+		Path tf = tokenFile(file);
+		if (token == null || token.isBlank()) Files.deleteIfExists(tf);
+		else writeAtomic(tf, token.trim() + System.lineSeparator());
+	}
+
+	private static void writeAtomic(Path target, String text) throws IOException {
+		Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
+		Files.writeString(tmp, text, StandardCharsets.UTF_8);
 		try {
-			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch (AtomicMoveNotSupportedException e) {
-			Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+			Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
 		}
 	}
 
@@ -86,6 +123,7 @@ public final class ModConfig {
 	public ModConfig copy() {
 		ModConfig c = GSON.fromJson(GSON.toJson(this), ModConfig.class);
 		c.file = file;
+		c.token = token;
 		return c;
 	}
 

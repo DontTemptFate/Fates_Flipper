@@ -35,6 +35,20 @@ public final class FlipStream {
 		void onFlip(JsonObject flip);
 
 		void onProfile(JsonObject profile);
+
+		/** The server refused this mod version (HTTP 426): {@code min} or {@code url} may be null. */
+		default void onOutdated(String min, String url) {}
+	}
+
+	/** Last {@code id:} seen on the stream, and for which server: sent back as Last-Event-ID (audit F-R1). */
+	private volatile String lastEventId;
+	private volatile String lastEventBase;
+
+	/** Last-Event-ID may only carry plain, short text. */
+	static String safeEventId(String id) {
+		if (id == null || id.isEmpty() || id.length() > 64) return null;
+		for (char c : id.toCharArray()) if (c < 0x21 || c > 0x7e) return null;
+		return id;
 	}
 
 	static final long IDLE_LIMIT_MS = 45_000;
@@ -184,11 +198,14 @@ public final class FlipStream {
 		setState(State.CONNECTING, "");
 		HttpRequest req;
 		try {
-			req = api.request(t, "/mod/flips")
+			var b = api.request(t, "/mod/flips")
 					.header("Accept", "text/event-stream")
 					.timeout(Duration.ofSeconds(20))
-					.GET()
-					.build();
+					.GET();
+			// the viewer replays flips missed during a short drop (viewers without ids ignore it)
+			String last = lastEventId;
+			if (last != null && t.baseUrl().equals(lastEventBase)) b.header("Last-Event-ID", last);
+			req = b.build();
 		} catch (IllegalArgumentException e) {
 			return new Outcome(Kind.STOPPED, "Bad server address.");
 		}
@@ -203,9 +220,22 @@ public final class FlipStream {
 		}
 		int code = resp.statusCode();
 		if (code != 200) {
+			String errBody = code == 426 ? ViewerApi.readLimited(resp.body()) : null;
 			closeQuietly(resp.body());
 			return switch (code) {
 				case 401 -> new Outcome(Kind.STOPPED, "Mod token missing or revoked: make a new one in the web page, then /ff config.");
+				case 426 -> {
+					JsonObject j = errBody == null ? null : Json.parseObject(errBody);
+					String min = Json.str(j, "min_version");
+					String url = Versions.safeUrl(Json.str(j, "download_url"));
+					try {
+						listener.onOutdated(Versions.valid(min) ? min : null, url);
+					} catch (RuntimeException ignored) {
+						// never let the listener break the stream loop
+					}
+					yield new Outcome(Kind.STOPPED, "This Fates Flipper is too old for the server"
+							+ (Versions.valid(min) ? ": " + min + " or newer is required" : "") + (url != null ? ". Get it at " + url : "") + ".");
+				}
 				case 403 -> new Outcome(Kind.STOPPED, ViewerApi.forbiddenMessage(null, null));
 				case 429 -> {
 					long ms = ViewerApi.retryAfterMs(resp);
@@ -226,7 +256,14 @@ public final class FlipStream {
 			while (running && gen == generation && allowed.getAsBoolean() && (line = readLine(reader)) != null) {
 				lastActivityMs = System.currentTimeMillis();
 				SseParser.Event ev = parser.feed(line);
-				if (ev != null) dispatch(ev);
+				if (ev != null) {
+					String id = safeEventId(ev.id());
+					if (id != null) {
+						lastEventId = id;
+						lastEventBase = t.baseUrl();
+					}
+					dispatch(ev);
+				}
 			}
 		} catch (Exception e) {
 			// dropped, idle timeout, or restart: handled below

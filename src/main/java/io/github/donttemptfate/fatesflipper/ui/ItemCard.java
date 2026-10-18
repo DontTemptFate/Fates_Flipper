@@ -35,16 +35,20 @@ public final class ItemCard {
 	static final String[] RARITIES = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "DIVINE", "SPECIAL", "ULTIMATE", "ADMIN"};
 
 	public static Card build(ItemStack stack, PriceTooltips.View view) {
+		return build(stack, view, List.of());
+	}
+
+	/** {@code extra}: lines other mods add to this item's tooltip, shown in a MODS section (audit F-C1). */
+	public static Card build(ItemStack stack, PriceTooltips.View view, List<Component> extra) {
 		Card c = new Card(0.94f, 120, 230).gap(1);
 		Component name = stack.get(DataComponents.CUSTOM_NAME);
 		if (name == null) name = stack.getHoverName();
 		c.add(new Text(noFakeBold(name), Role.NAME, 0, 0));
 
-		List<Component> all = new ArrayList<>();
-		ItemLore l = stack.get(DataComponents.LORE);
-		if (l != null) all.addAll(l.lines());
+		var facts = io.github.donttemptfate.fatesflipper.ItemBytes.facts(stack);
+		List<Component> all = facts == null ? List.of() : facts.lore();
 		// Hypixel's auction listing lines (Auctions Browser) get their own LISTING section
-		int cut = LoreParts.listingStart(io.github.donttemptfate.fatesflipper.ItemBytes.plain(all));
+		int cut = facts == null ? -1 : facts.listingCut();
 		List<Component> lore = cut < 0 ? all : new ArrayList<>(all.subList(0, cut));
 		List<Component> listing = cut < 0 ? List.of() : all.subList(cut, all.size());
 		int rarity = rarityLine(lore);
@@ -67,8 +71,49 @@ public final class ItemCard {
 		}
 		if (rarity >= 0) c.space(3).add(new Text(noFakeBold(lore.get(rarity)), Role.BODY_BOLD, 0, 0));
 		addListing(c, listing);
+		addMods(c, extra);
 		Cards.fatesBlock(c, view);
 		return c;
+	}
+
+	/** Lines other mods add to the tooltip (prices, pet info…), as they are, so the Fates look never hides them. */
+	static void addMods(Card c, List<Component> extra) {
+		if (extra == null || extra.isEmpty()) return;
+		c.space(2).add(new Rule("MODS", Ui.GRAY, null));
+		int n = 0;
+		for (Component line : extra) {
+			if (++n > 24) break; // a runaway tooltip from another mod stays bounded
+			c.add(new Text(line, Role.SMALL, 0, 3));
+		}
+	}
+
+	/**
+	 * Lines in the full tooltip that aren't the item's own name or lore, our lines, or vanilla's
+	 * advanced-tooltip lines (item id, NBT count): what other mods added.
+	 */
+	public static List<Component> extraLines(List<Component> full, ItemStack stack) {
+		var facts = io.github.donttemptfate.fatesflipper.ItemBytes.facts(stack);
+		java.util.Map<String, Integer> own = new java.util.HashMap<>();
+		Component name = stack.get(DataComponents.CUSTOM_NAME);
+		own.merge((name == null ? stack.getHoverName() : name).getString(), 1, Integer::sum);
+		if (facts != null) for (Component l : facts.lore()) own.merge(l.getString(), 1, Integer::sum);
+		List<Component> out = new ArrayList<>();
+		for (Component line : full) {
+			String s = line.getString();
+			Integer left = own.get(s);
+			if (left != null && left > 0) {
+				own.put(s, left - 1);
+				continue;
+			}
+			String p = LegacyText.strip(s).trim();
+			if (p.matches("^[a-z0-9_.-]+:[a-z0-9_/.-]+$") || p.matches("^NBT: \\d+ tags?$")) continue;
+			out.add(line);
+		}
+		// drop blank lines at the ends, and repeated blanks
+		while (!out.isEmpty() && out.get(0).getString().isBlank()) out.remove(0);
+		while (!out.isEmpty() && out.get(out.size() - 1).getString().isBlank()) out.remove(out.size() - 1);
+		for (int i = out.size() - 1; i > 0; i--) if (out.get(i).getString().isBlank() && out.get(i - 1).getString().isBlank()) out.remove(i);
+		return out;
 	}
 
 	/** Seller, price, time left…: key/value rows in one column (the countdown ticks in place); other lines as they are. */

@@ -5,7 +5,7 @@ import java.util.Locale;
 
 /**
  * Checks the viewer address the player typed in. The mod token is sent to this address on every
- * request, so plain {@code http://} is only allowed to this machine and to Tailscale addresses.
+ * request, so plain {@code http://} is only allowed to this machine, private (LAN) networks and Tailscale.
  */
 public final class ServerAddress {
 	private ServerAddress() {}
@@ -41,7 +41,7 @@ public final class ServerAddress {
 			}
 			case "http" -> {
 				if (!isPrivateHost(host)) {
-					return new Check(null, "Plain http:// would send your mod token unencrypted. Use https://, or http:// only for this computer or a Tailscale address.");
+					return new Check(null, "Plain http:// would send your mod token unencrypted. Use https://, or http:// only for this computer, your home network or a Tailscale address.");
 				}
 			}
 			default -> {
@@ -53,11 +53,15 @@ public final class ServerAddress {
 		return new Check(scheme + "://" + hostPart.toLowerCase(Locale.ROOT) + port, null);
 	}
 
-	/** This computer, or Tailscale's 100.64.0.0/10 range. */
+	/**
+	 * This computer, a home / LAN network (10/8, 172.16/12, 192.168/16; audit F-S3), or Tailscale
+	 * (100.64.0.0/10 and fd7a:115c:a1e0::/48).
+	 */
 	static boolean isPrivateHost(String host) {
 		String h = host.toLowerCase(Locale.ROOT);
 		if (h.startsWith("[") && h.endsWith("]")) h = h.substring(1, h.length() - 1);
 		if (h.equals("localhost") || h.equals("::1")) return true;
+		if (h.startsWith("fd7a:115c:a1e0:")) return true;
 		if (h.endsWith(".")) return false;
 		String[] parts = h.split("\\.");
 		if (parts.length != 4) return false;
@@ -70,7 +74,9 @@ public final class ServerAddress {
 			}
 			if (n[i] < 0 || n[i] > 255) return false;
 		}
-		if (n[0] == 127) return true;
+		if (n[0] == 127 || n[0] == 10) return true;
+		if (n[0] == 172 && n[1] >= 16 && n[1] <= 31) return true;
+		if (n[0] == 192 && n[1] == 168) return true;
 		return n[0] == 100 && n[1] >= 64 && n[1] <= 127;
 	}
 

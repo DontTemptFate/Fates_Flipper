@@ -33,7 +33,8 @@ public final class Keys {
 	public static void tick(Minecraft mc, FlipService service) {
 		if (pressedOnce(openBest) && service.keyActionAllowed()) service.openNext("best");
 		if (pressedOnce(openSafest) && service.keyActionAllowed()) service.openNext("safest");
-		if (pressedOnce(openSettings)) mc.gui.setScreen(new ConfigScreen(mc.gui.screen(), service));
+		// only from the game itself, never over chat or another mod's screen (audit F-C4)
+		if (pressedOnce(openSettings) && mc.gui.screen() == null) mc.gui.setScreen(new ConfigScreen(null, service));
 	}
 
 	private static boolean pressedOnce(KeyMapping key) {

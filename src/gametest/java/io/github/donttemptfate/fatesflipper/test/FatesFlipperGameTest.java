@@ -46,6 +46,14 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 		}
 		FlipService service = FatesFlipperClient.service();
 		check(service != null, "mod didn't initialise");
+		// another mod adding a tooltip line: it must show in the Fates tooltip's MODS section (audit F-C1)
+		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, tctx, flag, lines) -> {
+			var cd = stack.get(DataComponents.CUSTOM_DATA);
+			if (cd != null && "FUNGI_CUTTER_2".equals(cd.copyTag().getStringOr("id", ""))) {
+				lines.add(Component.literal("OtherMod value: ").withStyle(net.minecraft.ChatFormatting.GRAY)
+						.append(Component.literal("12.3M").withStyle(net.minecraft.ChatFormatting.AQUA)));
+			}
+		});
 		try (TestSingleplayerContext sp = ctx.worldBuilder().create()) {
 			ctx.runOnClient(mc -> {
 				ModConfig c = service.config().copy();
@@ -63,6 +71,20 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			check(service.recentFlip(FakeViewer.EVIL_ID) == null, "a flip with a non-/viewauction command was accepted");
 			check(fake.unauthorized.get() == 0, "requests went out without the token");
 			ctx.takeScreenshot("01_flip_alert");
+			// chat settings came from /mod/profiles (viewer handoff 2026-10-18): no /api call needed
+			check(fake.apiProfilesCalls.get() == 0, "read chat settings from /api/profiles though /mod/profiles had them");
+			// the same flip again (a replay or re-send) never shows twice (audit F-R2)
+			int shownBefore = ctx.computeOnClient(mc -> service.recentFlips().size());
+			ctx.runOnClient(mc -> service.onFlip(com.google.gson.JsonParser.parseString(
+					FakeViewer.flip(FakeViewer.FLIP_ID, "Heroic Hyperion", 1_150_000_000L, 42_000_000L, "/viewauction " + FakeViewer.FLIP_ID)).getAsJsonObject()));
+			check(ctx.computeOnClient(mc -> service.recentFlips().size()) == shownBefore, "a repeated flip was shown twice");
+			// after a drop the mod reconnects with the last event id, so the viewer can replay what it missed (audit F-R1)
+			ctx.runOnClient(mc -> service.reconnect());
+			ctx.waitFor(mc -> fake.lastEventIdHeader.get() != null, 600);
+			check("42".equals(fake.lastEventIdHeader.get()), "reconnected with Last-Event-ID " + fake.lastEventIdHeader.get());
+			ctx.waitFor(mc -> service.streamState() == FlipStream.State.CONNECTED, 600);
+			ctx.waitTicks(30);
+			check(ctx.computeOnClient(mc -> service.recentFlips().size()) == shownBefore, "a replayed flip was shown twice");
 
 			// 1b. the /ff commands run without errors
 			for (String cmd : List.of("ff help", "ff status", "ff profiles", "ff recent", "ff open not-an-id")) {
@@ -192,6 +214,10 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.getInput().setCursorPos(at[0], at[1]);
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("07_item_tooltip_live");
+			var extra = ctx.computeOnClient(mc -> io.github.donttemptfate.fatesflipper.ui.ItemTooltips.otherModsLines(rich)
+					.stream().map(Component::getString).toList());
+			check(extra.stream().anyMatch(l -> l.contains("OtherMod value")), "another mod's tooltip line was dropped: " + extra);
+			check(extra.stream().noneMatch(l -> l.startsWith("Fates")), "our own price lines leaked into MODS: " + extra);
 			// a tooltip taller than the screen: shown full size, scrolled with the mouse wheel
 			double[] at2 = ctx.computeOnClient(mc -> {
 				var acc = (io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor) mc.gui.screen();
@@ -284,6 +310,19 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.waitTicks(100);
 			check(fake.unauthorized.get() == before, "kept retrying after 401");
 			ctx.takeScreenshot("05_token_revoked_hud");
+
+			// 7. version handshake: a server needing a newer mod turns flips off and says so (audit F-S5)
+			ctx.runOnClient(mc -> {
+				ModConfig c = service.config().copy();
+				c.token = FakeViewer.TOKEN;
+				service.applyConfig(c);
+			});
+			ctx.waitFor(mc -> service.streamState() == FlipStream.State.CONNECTED, 600);
+			ctx.runOnClient(mc -> service.applyVersions("9.9.9", "9.9.9", "https://example.com/fates-flipper"));
+			ctx.waitTicks(40);
+			check(service.updateRequired() != null, "an outdated mod wasn't flagged");
+			check(service.streamState() != FlipStream.State.CONNECTED, "flips kept streaming on an outdated mod");
+			ctx.takeScreenshot("05b_update_required_hud");
 		} finally {
 			ctx.runOnClient(mc -> {
 				ModConfig c = service.config().copy();
