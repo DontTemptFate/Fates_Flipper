@@ -57,6 +57,14 @@ public final class Commands {
 						.then(ClientCommands.literal("chakra").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, true, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.font.chakra"))))
 						.then(ClientCommands.literal("vanilla").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, false, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.font.vanilla")))))
 				.then(themeCommand(s))
+				// opt-in account check; every step is written out in Verify.java (Fate, 2026-10-18)
+				.then(ClientCommands.literal("verify").executes(c -> {
+					Verify.explain();
+					return 1;
+				}).then(ClientCommands.literal("CONFIRM").executes(c -> {
+					Verify.run(s);
+					return 1;
+				})))
 				.then(ClientCommands.literal("cursorassist")
 						// turning it on needs a second, typed confirmation (Fate, 2026-10-18)
 						.then(ClientCommands.literal("on").executes(c -> {
@@ -147,6 +155,7 @@ public final class Commands {
 				{"/ff theme [name]", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.theme")},
 				{"/ff cursorassist on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.13")},
 				{"/ff reconnect", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.14")},
+				{"/ff verify", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.verify")},
 		};
 		for (String[] r : rows) {
 			Chat.send(Component.literal("  " + r[0]).withStyle(ChatFormatting.YELLOW)

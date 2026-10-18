@@ -56,10 +56,14 @@ jobs:
                    net.minecraft.world.scores.PlayerTeam net.minecraft.world.scores.Objective \
                    net.minecraft.client.gui.components.EditBox net.minecraft.client.gui.components.ChatComponent \
                    net.minecraft.client.multiplayer.chat.ChatListener net.minecraft.client.gui.Gui net.minecraft.client.CommandHistory \
-                   net.minecraft.util.ArrayListDeque net.minecraft.client.gui.screens.ChatScreen; do
+                   net.minecraft.util.ArrayListDeque net.minecraft.client.gui.screens.ChatScreen \
+                   net.minecraft.client.Minecraft net.minecraft.client.User net.minecraft.server.Services; do
             echo "=== $c" >> api.txt
             javap -p -cp "$jar" "$c" >> api.txt 2>&1 || true
           done
+          auth=$(find ~/.gradle/caches -name 'authlib-*.jar' 2>/dev/null | grep -v sources | head -1)
+          echo "=== authlib: $auth" >> api.txt
+          javap -cp "$auth" com.mojang.authlib.minecraft.MinecraftSessionService >> api.txt 2>&1 || true
 
       # 26.3 renders through SDL3 and needs a real (virtual) display with GL drivers on CI.
       - name: Virtual display for the game test

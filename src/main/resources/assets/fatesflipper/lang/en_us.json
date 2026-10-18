@@ -257,5 +257,19 @@
 	"fatesflipper.cmd.font.vanilla": "Font: Minecraft (shared with Fates OFA).",
 	"fatesflipper.cmd.theme.list": "Theme: %s. Choose one with /ff theme <name>: %s (shared with Fates OFA).",
 	"fatesflipper.cmd.theme.set": "Theme: %s (shared with Fates OFA).",
-	"fatesflipper.cmd.help.theme": "colour theme: fates, midnight, ember, vanilla (shared with Fates OFA)"
+	"fatesflipper.cmd.help.theme": "colour theme: fates, midnight, ember, vanilla (shared with Fates OFA)",
+	"fatesflipper.cmd.help.verify": "prove your Minecraft account to the website for My flips (opt-in, asks first)",
+	"fatesflipper.verify.what": "/ff verify links this Minecraft account to your Fates account (for My flips). It is optional and runs once, only when you confirm.",
+	"fatesflipper.verify.sends": "The mod asks your Fates server for a one-use code, hands that code to Minecraft's own \"join server\" call (the same thing joining any server does; your session token stays inside Minecraft and goes only to Mojang), then sends your player name and the code to your Fates server. Nothing else is sent, stored or kept.",
+	"fatesflipper.verify.how": "Type /ff verify CONFIRM to go ahead.",
+	"fatesflipper.verify.offline": "Can't verify: this game isn't logged in to a Minecraft account.",
+	"fatesflipper.verify.busy": "Already verifying, one moment.",
+	"fatesflipper.verify.start": "Verifying your account…",
+	"fatesflipper.verify.bad_code": "the server sent an unexpected code",
+	"fatesflipper.verify.mojang": "Mojang refused the check (%s); try again after rejoining",
+	"fatesflipper.verify.failed": "Verification failed: %s",
+	"fatesflipper.verify.ok": "Verified: %s is now linked to your Fates account.",
+	"fatesflipper.verify.taken": "%s is already verified on another Fates account.",
+	"fatesflipper.verify.limit": "Your Fates account already has the most linked Minecraft accounts (3).",
+	"fatesflipper.verify.unknown": "The server answered, but with something this version doesn't know."
 }
