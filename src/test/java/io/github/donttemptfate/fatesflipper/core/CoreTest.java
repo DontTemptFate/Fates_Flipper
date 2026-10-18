@@ -394,6 +394,25 @@ public class CoreTest {
 		assertEquals("fv_secret123", c.copy().token);
 	}
 
+	/** 0.4.0: the font moved to the settings shared with Fates OFA; a 0.3.x choice is read once and not saved here again. */
+	@Test
+	public void fontCarriedOverOnce() throws Exception {
+		java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("ffcfg");
+		java.nio.file.Path f = dir.resolve("fatesflipper.json");
+		java.nio.file.Files.writeString(f, "{\"serverUrl\":\"\",\"chakraFont\":false}");
+		ModConfig c = ModConfig.load(f);
+		assertEquals(Boolean.FALSE, c.legacyChakra);
+		assertFalse(c.chakraFont);
+		c.theme = "ember";
+		assertEquals("ember", c.copy().theme);
+		c.save();
+		String saved = java.nio.file.Files.readString(f);
+		assertFalse(saved.contains("chakraFont"));
+		assertFalse(saved.contains("ember"));
+		assertNull(ModConfig.load(f).legacyChakra);
+		assertNull(ModConfig.load(dir.resolve("missing.json")).legacyChakra);
+	}
+
 	@Test
 	public void privateHosts() {
 		for (String h : new String[] {"http://10.0.0.5:8738", "http://172.16.1.2:8738", "http://192.168.1.20:8738", "http://[fd7a:115c:a1e0::1]:8738"}) {

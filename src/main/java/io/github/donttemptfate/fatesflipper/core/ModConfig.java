@@ -44,8 +44,15 @@ public final class ModConfig {
 	public boolean fatesLook = true;
 	/** SkyBlock item tooltips in the Fates look (off = vanilla tooltips with price lines). */
 	public boolean fatesTooltips = true;
-	/** Chakra Petch font in the Fates look (off = Minecraft's font, same layout). */
-	public boolean chakraFont = true;
+	/**
+	 * Chakra Petch font in the Fates look (off = Minecraft's font, same layout) and the colour theme.
+	 * Since 0.4.0 both are shared with Fates OFA and saved by Fates Common in config/fatescommon.json;
+	 * these two fields only mirror it (FlipService keeps them in step) and aren't saved here.
+	 */
+	public transient boolean chakraFont = true;
+	public transient String theme = "fates";
+	/** The font setting from a 0.3.x settings file, carried over once into the shared settings. */
+	public transient Boolean legacyChakra;
 	/** Only connect while on Hypixel. */
 	public boolean onlyOnHypixel = true;
 	/** Flip alerts only while in SkyBlock (not in lobbies or other games). */
@@ -58,12 +65,16 @@ public final class ModConfig {
 	public static ModConfig load(Path file) {
 		ModConfig cfg = null;
 		String legacyToken = null;
+		Boolean legacyChakra = null;
 		if (Files.isRegularFile(file)) {
 			try {
 				String text = Files.readString(file, StandardCharsets.UTF_8);
 				cfg = GSON.fromJson(text, ModConfig.class);
 				com.google.gson.JsonObject raw = Json.parseObject(text);
 				legacyToken = Json.str(raw, "token"); // 0.3.3 and older kept it in this file
+				if (raw != null && raw.has("chakraFont") && raw.get("chakraFont").isJsonPrimitive()) {
+					legacyChakra = raw.get("chakraFont").getAsBoolean(); // 0.3.x kept the font here
+				}
 			} catch (Exception e) {
 				cfg = null;
 			}
@@ -71,6 +82,8 @@ public final class ModConfig {
 		if (cfg == null) cfg = new ModConfig();
 		if (cfg.serverUrl == null) cfg.serverUrl = "";
 		cfg.file = file;
+		cfg.legacyChakra = legacyChakra;
+		if (legacyChakra != null) cfg.chakraFont = legacyChakra;
 		cfg.token = readToken(tokenFile(file));
 		if (cfg.token.isEmpty() && legacyToken != null && !legacyToken.isBlank()) {
 			cfg.token = legacyToken.trim();
@@ -124,6 +137,9 @@ public final class ModConfig {
 		ModConfig c = GSON.fromJson(GSON.toJson(this), ModConfig.class);
 		c.file = file;
 		c.token = token;
+		c.chakraFont = chakraFont;
+		c.theme = theme;
+		c.legacyChakra = legacyChakra;
 		return c;
 	}
 

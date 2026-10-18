@@ -27,12 +27,12 @@ public abstract class SystemReportMixin {
 			FlipService s = FatesFlipperClient.service();
 			if (s == null) return "not started";
 			ModConfig c = s.config();
-			return s.modVersion() + " for Minecraft " + io.github.donttemptfate.fatesflipper.compat.Compat.MINECRAFT
+			return s.modVersion() + " for Minecraft " + io.github.donttemptfate.fatescommon.compat.Compat.MINECRAFT
 					+ "; set up " + c.isReady() + ", on Hypixel " + s.onHypixel()
 					+ ", stream " + s.streamState() + (s.updateRequired() != null ? " (update required)" : "")
 					+ "; alerts " + c.alerts + ", skyblock-only " + c.onlyInSkyBlock + ", tooltips " + c.tooltips
 					+ ", overlay " + c.auctionOverlay + ", look " + c.fatesLook + ", fates tooltips " + c.fatesTooltips
-					+ ", chakra " + c.chakraFont + ", cursor assist " + c.cursorAssist + ", close key " + c.pressAgainToClose;
+					+ ", chakra " + c.chakraFont + ", theme " + c.theme + ", cursor assist " + c.cursorAssist + ", close key " + c.pressAgainToClose;
 		});
 	}
 }

@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import io.github.donttemptfate.fatesflipper.compat.Compat;
+import io.github.donttemptfate.fatescommon.compat.Compat;
 
 /**
  * Key bindings (Options → Controls → Key Binds → Fates Flipper). All unbound by default so they

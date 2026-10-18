@@ -1,5 +1,8 @@
 package io.github.donttemptfate.fatesflipper;
 
+import io.github.donttemptfate.fatescommon.Settings;
+import io.github.donttemptfate.fatescommon.ui.Theme;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -114,9 +117,11 @@ public final class FlipService implements FlipStream.Listener {
 	public FlipService(Minecraft mc, ModConfig config, String version) {
 		this.mc = mc;
 		this.config = config;
-		io.github.donttemptfate.fatescommon.ui.Ui.useChakra(config.chakraFont);
+		// the font moved to the settings shared with Fates OFA: carry a 0.3.x choice over once
+		if (config.legacyChakra != null && !Settings.saved()) Settings.setChakra(config.legacyChakra);
+		mirrorShared(config);
 		this.modVersion = io.github.donttemptfate.fatescommon.text.Versions.plain(version);
-		this.api = new ViewerApi(() -> this.config, modVersion + " (Minecraft " + io.github.donttemptfate.fatesflipper.compat.Compat.MINECRAFT + ")");
+		this.api = new ViewerApi(() -> this.config, modVersion + " (Minecraft " + io.github.donttemptfate.fatescommon.compat.Compat.MINECRAFT + ")");
 		this.stream = new FlipStream(api, this, this::streamAllowed);
 		this.itemPrices = new PriceCache(api::priceByItem, System::currentTimeMillis, 3);
 	}
@@ -132,14 +137,23 @@ public final class FlipService implements FlipStream.Listener {
 	// ---- settings ------------------------------------------------------------------------------
 
 	public ModConfig config() {
+		mirrorShared(config); // Fates OFA may have changed the shared font or theme
 		return config;
+	}
+
+	/** Copies the shared font and theme (Fates Common's settings) into the mod's settings object. */
+	private static void mirrorShared(ModConfig c) {
+		c.chakraFont = Settings.chakra();
+		c.theme = Settings.theme().id();
 	}
 
 	/** Saves new settings and reconnects with them. */
 	public void applyConfig(ModConfig next) {
 		ModConfig prev = this.config;
 		this.config = next;
-		io.github.donttemptfate.fatescommon.ui.Ui.useChakra(next.chakraFont);
+		if (next.chakraFont != Settings.chakra()) Settings.setChakra(next.chakraFont);
+		if (!Settings.theme().id().equals(next.theme)) Settings.setTheme(Theme.byId(next.theme));
+		mirrorShared(next);
 		try {
 			next.save();
 		} catch (Exception e) {

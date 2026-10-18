@@ -39,6 +39,7 @@ your own two clicks.
 | Open best / safest flip | Key binds or `/ff best`, `/ff safest`. Skips auctions you already opened or that already sold. Press the same key again inside that auction to close it. |
 | Auction window overlay | On the flip you opened (checked by price **and** item name): filler dimmed, the item and Buy / Confirm outlined by state (green buy, orange can't afford, red sold), side panel with price, profit, confidence and recent sales of the exact item. Drawn on top of Hypixel's window; your clicks always go to Hypixel's slots. |
 | Item tooltips | SkyBlock items get a cleaner tooltip: stats, enchants, the auction listing (seller, price, time left), lines other mods add (under **MODS**) and the Fates price block (value, safe value, confidence, lowest BIN, sales per day, dupe flag). Bazaar items say so. Long tooltips scroll with the mouse wheel. |
+| Themes | Four colour themes (Fates, Midnight, Ember, Vanilla) and the Chakra Petch font, picked in settings or with `/ff theme` / `/ff font`. Both are shared with Fates OFA: change them in either mod and both follow (saved in `config/fatescommon.json`). |
 | Status display | Top-left card when connecting, offline, stopped (with the reason) or when an update is required. |
 | Update notice | When the website says a newer version is out, one chat line. When it requires a newer version, flips stop until you update (hover prices keep working). The mod never downloads anything itself. |
 | Cursor assist | **Opt-in, off by default, and turning it on asks you to type CONFIRM.** Moves the cursor once onto Buy, then once onto Confirm, for an auction you just opened from a flip, only when Buy is green. Never clicks, no jitter, and never if you're already moving the mouse. Hypixel doesn't certify mods: use at your own risk. |
@@ -58,7 +59,8 @@ your own two clicks.
 | `/ff dungeons on\|off` | alerts in dungeons and Kuudra too (off) |
 | `/ff closekey on\|off` | press the open key again to close the flip (on) |
 | `/ff look\|fatestooltips on\|off` | the Fates look; Fates item tooltips |
-| `/ff font chakra\|vanilla` | Chakra Petch or Minecraft's font |
+| `/ff font chakra\|vanilla` | Chakra Petch or Minecraft's font (shared with Fates OFA) |
+| `/ff theme [name]` | colour theme: `fates`, `midnight`, `ember`, `vanilla` (shared with Fates OFA) |
 | `/ff cursorassist on\|off` | opt-in, off by default; turning it on asks you to confirm |
 | `/ff reconnect` | connect again now |
 | `/ff server <address>` · `/ff token <token>` | set the address / token without the settings screen |
