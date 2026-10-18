@@ -214,10 +214,10 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.getInput().setCursorPos(at[0], at[1]);
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("07_item_tooltip_live");
-			var extra = ctx.computeOnClient(mc -> io.github.donttemptfate.fatesflipper.ui.ItemTooltips.otherModsLines(rich)
+			var modLines = ctx.computeOnClient(mc -> io.github.donttemptfate.fatesflipper.ui.ItemTooltips.otherModsLines(rich)
 					.stream().map(Component::getString).toList());
-			check(extra.stream().anyMatch(l -> l.contains("OtherMod value")), "another mod's tooltip line was dropped: " + extra);
-			check(extra.stream().noneMatch(l -> l.startsWith("Fates")), "our own price lines leaked into MODS: " + extra);
+			check(modLines.stream().anyMatch(l -> l.contains("OtherMod value")), "another mod's tooltip line was dropped: " + modLines);
+			check(modLines.stream().noneMatch(l -> l.startsWith("Fates")), "our own price lines leaked into MODS: " + modLines);
 			// a tooltip taller than the screen: shown full size, scrolled with the mouse wheel
 			double[] at2 = ctx.computeOnClient(mc -> {
 				var acc = (io.github.donttemptfate.fatesflipper.mixin.AbstractContainerScreenAccessor) mc.gui.screen();
