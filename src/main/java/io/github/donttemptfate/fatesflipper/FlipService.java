@@ -99,7 +99,7 @@ public final class FlipService implements FlipStream.Listener {
 
 	private void blockOutdated(String min, String url) {
 		String msg = io.github.donttemptfate.fatesflipper.core.Tr.tr(min != null ? "fatesflipper.msg.update_required" : "fatesflipper.msg.update_required_any", min != null ? min : "", modVersion)
-				+ (url != null ? " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.get_it", url) : "") + " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.flips_off"); hover prices still work.";
+				+ (url != null ? " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.get_it", url) : "") + " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.msg.flips_off");
 		boolean first = updateRequired == null;
 		updateRequired = msg;
 		stream.poke();
