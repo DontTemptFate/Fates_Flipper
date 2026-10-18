@@ -7,7 +7,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import io.github.donttemptfate.fates.common.text.Coins;
+import io.github.donttemptfate.fatescommon.text.Coins;
 import io.github.donttemptfate.fatesflipper.core.FlipEvent;
 import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.ModConfig;
@@ -159,7 +159,7 @@ public final class Commands {
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();
-				row("Viewer", "v" + io.github.donttemptfate.fates.common.text.LegacyText.strip(String.valueOf(Json.str(j, "version"))) + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
+				row("Viewer", "v" + io.github.donttemptfate.fatescommon.text.LegacyText.strip(String.valueOf(Json.str(j, "version"))) + ", collector " + (Json.bool(j, "collector_ok", false) ? "ok" : "not updating")
 						+ (Json.hasBool(j, "live_feed") ? ", live feed " + (Json.bool(j, "live_feed", false) ? "on" : "off") : ""));
 			} else {
 				row("Viewer", r.message());
@@ -221,10 +221,10 @@ public final class Commands {
 				if (name == null) continue;
 				boolean isActive = active != null && active.equals(p.get("id"));
 				long pid = (long) Json.num(p, "id", -1);
-				MutableComponent line = Component.literal((isActive ? "  ▶ " : "    ") + io.github.donttemptfate.fates.common.text.LegacyText.strip(name))
+				MutableComponent line = Component.literal((isActive ? "  ▶ " : "    ") + io.github.donttemptfate.fatescommon.text.LegacyText.strip(name))
 						.withStyle(isActive ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
 				if (pid >= 0) {
-					String label = io.github.donttemptfate.fates.common.text.LegacyText.strip(name);
+					String label = io.github.donttemptfate.fatescommon.text.LegacyText.strip(name);
 					line.withStyle(st -> st.withClickEvent(new ClickEvent.RunCommand("/ff profile " + pid))
 							.withHoverEvent(new HoverEvent.ShowText(Component.literal("Switch to " + label))));
 				}

@@ -106,8 +106,8 @@ public final class ConfigScreen extends Screen {
 	}
 
 	private static Component label(String label, boolean on) {
-		return io.github.donttemptfate.fates.common.ui.Ui.t(label + ": ", io.github.donttemptfate.fates.common.ui.Ui.Role.BODY, 0xFFFFFF)
-				.append(io.github.donttemptfate.fates.common.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fates.common.ui.Ui.Role.BODY,
+		return io.github.donttemptfate.fatescommon.ui.Ui.t(label + ": ", io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0xFFFFFF)
+				.append(io.github.donttemptfate.fatescommon.ui.Ui.t(on ? "ON" : "OFF", io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY,
 						on ? 0x55FF55 : 0xFF5555));
 	}
 
@@ -165,7 +165,7 @@ public final class ConfigScreen extends Screen {
 		super.extractBackground(g, mouseX, mouseY, delta);
 		int x = (this.width - W) / 2;
 		int t = top();
-		io.github.donttemptfate.fates.common.ui.Ui.frame(g, x - 12, Math.max(0, t - 6), W + 24, Math.min(this.height, H + 12), 0.94f);
+		io.github.donttemptfate.fatescommon.ui.Ui.frame(g, x - 12, Math.max(0, t - 6), W + 24, Math.min(this.height, H + 12), 0.94f);
 	}
 
 	@Override
@@ -173,28 +173,28 @@ public final class ConfigScreen extends Screen {
 		super.extractRenderState(g, mouseX, mouseY, delta);
 		int x = (this.width - W) / 2;
 		int t = top();
-		new io.github.donttemptfate.fates.common.ui.Card.Line(
-				java.util.List.of(io.github.donttemptfate.fates.common.ui.Card.seg("FATES FLIPPER", io.github.donttemptfate.fates.common.ui.Ui.Role.LABEL, io.github.donttemptfate.fates.common.ui.Ui.PINK)),
-				java.util.List.of(io.github.donttemptfate.fates.common.ui.Card.seg("SETTINGS", io.github.donttemptfate.fates.common.ui.Ui.Role.LABEL, io.github.donttemptfate.fates.common.ui.Ui.GRAY)))
+		new io.github.donttemptfate.fatescommon.ui.Card.Line(
+				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg("FATES FLIPPER", io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.PINK)),
+				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg("SETTINGS", io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.GRAY)))
 				.draw(g, x, t + 2, W);
 		rule(g, "SERVER ADDRESS", x, t + 22);
 		rule(g, "MOD TOKEN · NEVER SHARE IT", x, t + 52);
 		if (!token.visible) {
-			new io.github.donttemptfate.fates.common.ui.Card.Text(
-					io.github.donttemptfate.fates.common.ui.Ui.t(ModConfig.maskToken(token.getValue()), io.github.donttemptfate.fates.common.ui.Ui.Role.BODY, 0xFFAAAAAA),
-					io.github.donttemptfate.fates.common.ui.Ui.Role.BODY, 0, 1).draw(g, x + 4, t + 68, W - 60);
+			new io.github.donttemptfate.fatescommon.ui.Card.Text(
+					io.github.donttemptfate.fatescommon.ui.Ui.t(ModConfig.maskToken(token.getValue()), io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0xFFAAAAAA),
+					io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0, 1).draw(g, x + 4, t + 68, W - 60);
 		}
 		rule(g, "DISPLAY & ALERTS", x, t + 84);
 		int ty = t + 177;
 		String text = message.isEmpty() ? CURSOR_ASSIST_RISK : message;
 		int color = message.isEmpty() ? 0xFFFFAA00 : messageColor;
-		new io.github.donttemptfate.fates.common.ui.Card.Text(
-				io.github.donttemptfate.fates.common.ui.Ui.t(text, io.github.donttemptfate.fates.common.ui.Ui.Role.SMALL, color),
-				io.github.donttemptfate.fates.common.ui.Ui.Role.SMALL, 0, 2).draw(g, x, ty, W);
+		new io.github.donttemptfate.fatescommon.ui.Card.Text(
+				io.github.donttemptfate.fatescommon.ui.Ui.t(text, io.github.donttemptfate.fatescommon.ui.Ui.Role.SMALL, color),
+				io.github.donttemptfate.fatescommon.ui.Ui.Role.SMALL, 0, 2).draw(g, x, ty, W);
 	}
 
 	private static void rule(GuiGraphicsExtractor g, String label, int x, int y) {
-		new io.github.donttemptfate.fates.common.ui.Card.Rule(label, io.github.donttemptfate.fates.common.ui.Ui.GRAY, null).draw(g, x, y, W);
+		new io.github.donttemptfate.fatescommon.ui.Card.Rule(label, io.github.donttemptfate.fatescommon.ui.Ui.GRAY, null).draw(g, x, y, W);
 	}
 
 	@Override
