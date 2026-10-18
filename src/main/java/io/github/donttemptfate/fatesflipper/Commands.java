@@ -197,7 +197,7 @@ public final class Commands {
 		ModConfig next = s.config().copy();
 		next.token = t;
 		s.applyConfig(next);
-		Chat.ok("Mod token saved: " + ModConfig.maskToken(t) + ". Tip: /ff config keeps it out of your chat history.");
+		Chat.ok("Mod token saved: " + ModConfig.maskToken(t) + ". It isn't kept in your chat history.");
 		return 1;
 	}
 
