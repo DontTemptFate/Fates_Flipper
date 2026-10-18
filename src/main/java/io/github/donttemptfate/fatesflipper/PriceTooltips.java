@@ -166,6 +166,14 @@ public final class PriceTooltips {
 				if (!addRough(v.data(), lines)) lines.add(gray(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.not_traded")));
 			}
 		}
+		// item traits and creation date (collector v0.9.20 via the viewer), display only
+		for (var l : io.github.donttemptfate.fatesflipper.core.ItemTraits.lines(v.data(), java.time.ZoneId.systemDefault())) {
+			var line = Component.literal("  ");
+			if (l.swatch() >= 0) line.append(Component.literal("■ ").withStyle(st -> st.withColor(l.swatch())));
+			line.append(Component.literal(l.text()).withStyle(ChatFormatting.GRAY));
+			if (l.badge() != null) line.append(Component.literal(" " + l.badge()).withStyle(ChatFormatting.LIGHT_PURPLE));
+			lines.add(line);
+		}
 	}
 
 	/** Viewer v0.20.0+: a rough, display-only value for items without enough exact sales. */

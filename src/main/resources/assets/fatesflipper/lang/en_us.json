@@ -299,5 +299,16 @@
 	"fatesflipper.cmd.help.mute": "mute the last alert's item (or category) in your active profile",
 	"fatesflipper.cmd.help.unmute": "unmute the last alert's item, or everything",
 	"fatesflipper.hud.paused_quiet": "Alerts paused · quiet hours until %s",
-	"fatesflipper.hud.paused_limit": "Alerts paused · alert limit until %s"
+	"fatesflipper.hud.paused_limit": "Alerts paused · alert limit until %s",
+	"fatesflipper.card.traits": "ITEM",
+	"fatesflipper.traits.exotic": "Exotic",
+	"fatesflipper.traits.collector": "Collector colour",
+	"fatesflipper.traits.dyed": "Dyed: %s",
+	"fatesflipper.traits.edition_year": "Edition #%s · %s",
+	"fatesflipper.traits.edition": "Edition #%s",
+	"fatesflipper.traits.year": "Year %s",
+	"fatesflipper.traits.evolved": "Evolved",
+	"fatesflipper.traits.maxed": "Maxed",
+	"fatesflipper.traits.handles": "%s of 3 handles",
+	"fatesflipper.traits.made": "Made %s"
 }
