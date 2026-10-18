@@ -1,33 +1,33 @@
 package io.github.donttemptfate.fatesflipper.ui;
 
-import io.github.donttemptfate.fates.common.ui.Card;
-import io.github.donttemptfate.fates.common.ui.Ui;
+import io.github.donttemptfate.fatescommon.ui.Card;
+import io.github.donttemptfate.fatescommon.ui.Ui;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.donttemptfate.fatesflipper.PriceTooltips;
 import io.github.donttemptfate.fatesflipper.core.AuctionWindow.ButtonState;
-import io.github.donttemptfate.fates.common.text.Coins;
+import io.github.donttemptfate.fatescommon.text.Coins;
 import io.github.donttemptfate.fatesflipper.core.FlipEvent;
 import io.github.donttemptfate.fatesflipper.core.Json;
-import io.github.donttemptfate.fates.common.text.LegacyText;
-import io.github.donttemptfate.fates.common.ui.Card.Grid;
-import io.github.donttemptfate.fates.common.ui.Card.Hero;
-import io.github.donttemptfate.fates.common.ui.Card.KeyValues;
-import io.github.donttemptfate.fates.common.ui.Card.Line;
-import io.github.donttemptfate.fates.common.ui.Card.Rule;
-import io.github.donttemptfate.fates.common.ui.Card.SalesStrip;
-import io.github.donttemptfate.fates.common.ui.Card.Seg;
-import io.github.donttemptfate.fates.common.ui.Card.Status;
-import io.github.donttemptfate.fates.common.ui.Ui.Role;
+import io.github.donttemptfate.fatescommon.text.LegacyText;
+import io.github.donttemptfate.fatescommon.ui.Card.Grid;
+import io.github.donttemptfate.fatescommon.ui.Card.Hero;
+import io.github.donttemptfate.fatescommon.ui.Card.KeyValues;
+import io.github.donttemptfate.fatescommon.ui.Card.Line;
+import io.github.donttemptfate.fatescommon.ui.Card.Rule;
+import io.github.donttemptfate.fatescommon.ui.Card.SalesStrip;
+import io.github.donttemptfate.fatescommon.ui.Card.Seg;
+import io.github.donttemptfate.fatescommon.ui.Card.Status;
+import io.github.donttemptfate.fatescommon.ui.Ui.Role;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static io.github.donttemptfate.fates.common.ui.Card.seg;
+import static io.github.donttemptfate.fatescommon.ui.Card.seg;
 
 /** The Fates cards: auction side panel, chat flip hover, and the Fates block of item tooltips. */
 public final class Cards {

@@ -1,6 +1,6 @@
 package io.github.donttemptfate.fatesflipper;
 
-import io.github.donttemptfate.fates.common.skyblock.SkyBlockLocation;
+import io.github.donttemptfate.fatescommon.skyblock.SkyBlockLocation;
 import net.minecraft.client.Minecraft;
 
 /**

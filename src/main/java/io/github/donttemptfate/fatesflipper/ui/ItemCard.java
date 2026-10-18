@@ -1,15 +1,15 @@
 package io.github.donttemptfate.fatesflipper.ui;
 
-import io.github.donttemptfate.fates.common.ui.Card;
-import io.github.donttemptfate.fates.common.ui.Ui;
+import io.github.donttemptfate.fatescommon.ui.Card;
+import io.github.donttemptfate.fatescommon.ui.Ui;
 
 import io.github.donttemptfate.fatesflipper.PriceTooltips;
-import io.github.donttemptfate.fates.common.text.LegacyText;
-import io.github.donttemptfate.fates.common.skyblock.LoreParts;
-import io.github.donttemptfate.fates.common.ui.Card.Rule;
-import io.github.donttemptfate.fates.common.ui.Card.Stats;
-import io.github.donttemptfate.fates.common.ui.Card.Text;
-import io.github.donttemptfate.fates.common.ui.Ui.Role;
+import io.github.donttemptfate.fatescommon.text.LegacyText;
+import io.github.donttemptfate.fatescommon.skyblock.LoreParts;
+import io.github.donttemptfate.fatescommon.ui.Card.Rule;
+import io.github.donttemptfate.fatescommon.ui.Card.Stats;
+import io.github.donttemptfate.fatescommon.ui.Card.Text;
+import io.github.donttemptfate.fatescommon.ui.Ui.Role;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -130,9 +130,9 @@ public final class ItemCard {
 			if (kv != null && after.isEmpty()) rows.add(kv[0], kv[1]);
 			else after.add(line);
 		}
-		if (rows.keys.isEmpty() && after.isEmpty()) return;
+		if (rows.isEmpty() && after.isEmpty()) return;
 		c.space(2).add(new Rule("LISTING", Ui.GRAY, null));
-		if (!rows.keys.isEmpty()) c.add(rows);
+		if (!rows.isEmpty()) c.add(rows);
 		for (Component line : after) c.add(new Text(line, Role.SMALL, 0, 0));
 	}
 

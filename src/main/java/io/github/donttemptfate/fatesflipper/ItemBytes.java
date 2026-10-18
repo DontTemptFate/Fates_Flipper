@@ -37,13 +37,13 @@ public final class ItemBytes {
 	static final int MAX_LORE_LINES = 64;
 
 	/** What the mod reads from one item, worked out once per item (Fates Common; audit F-P1). */
-	public static io.github.donttemptfate.fates.common.skyblock.ItemFacts facts(ItemStack stack) {
-		return io.github.donttemptfate.fates.common.skyblock.ItemFacts.of(stack);
+	public static io.github.donttemptfate.fatescommon.skyblock.ItemFacts facts(ItemStack stack) {
+		return io.github.donttemptfate.fatescommon.skyblock.ItemFacts.of(stack);
 	}
 
 	/** The item's SkyBlock data (read-only), or {@code null} when it has none (no custom data or no "id"). */
 	public static CompoundTag skyblockData(ItemStack stack) {
-		Facts f = facts(stack);
+		io.github.donttemptfate.fatescommon.skyblock.ItemFacts f = facts(stack);
 		return f == null ? null : f.data();
 	}
 
@@ -53,23 +53,23 @@ public final class ItemBytes {
 	 * Auctions Browser keeps one key while its countdown ticks.
 	 */
 	public static String cacheKey(ItemStack stack, CompoundTag skyblockData) {
-		Facts f = facts(stack);
+		io.github.donttemptfate.fatescommon.skyblock.ItemFacts f = facts(stack);
 		return f == null || f.cacheKey() == null ? "h:0:" : f.cacheKey();
 	}
 
 	/** Lore lines as plain text (colour codes removed). */
 	public static List<String> plain(List<Component> lines) {
-		return io.github.donttemptfate.fates.common.skyblock.ItemFacts.plain(lines);
+		return io.github.donttemptfate.fatescommon.skyblock.ItemFacts.plain(lines);
 	}
 
 	public static List<Component> lore(ItemStack stack) {
-		Facts f = facts(stack);
+		io.github.donttemptfate.fatescommon.skyblock.ItemFacts f = facts(stack);
 		return f == null ? List.of() : f.lore();
 	}
 
-	/** The item's own lore: without Hypixel's auction listing lines (see {@link io.github.donttemptfate.fates.common.skyblock.LoreParts}). */
+	/** The item's own lore: without Hypixel's auction listing lines (see {@link io.github.donttemptfate.fatescommon.skyblock.LoreParts}). */
 	public static List<Component> ownLore(ItemStack stack) {
-		Facts f = facts(stack);
+		io.github.donttemptfate.fatescommon.skyblock.ItemFacts f = facts(stack);
 		return f == null ? List.of() : f.ownLore();
 	}
 

@@ -192,11 +192,11 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 				ctx.takeScreenshot("06_gallery_" + p);
 			}
 			// the same cards with Minecraft's font (setting "Chakra font" off)
-			ctx.runOnClient(mc -> io.github.donttemptfate.fates.common.ui.Ui.useChakra(false));
+			ctx.runOnClient(mc -> io.github.donttemptfate.fatescommon.ui.Ui.useChakra(false));
 			ctx.setScreen(() -> new CardGallery(1, galleryFlip, rich, simple));
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("06_gallery_vanilla_font");
-			ctx.runOnClient(mc -> io.github.donttemptfate.fates.common.ui.Ui.useChakra(true));
+			ctx.runOnClient(mc -> io.github.donttemptfate.fatescommon.ui.Ui.useChakra(true));
 			// 4f. a real hovered item in a chest: our tooltip replaces vanilla's
 			SimpleContainer chest = new SimpleContainer(27);
 			chest.setItem(10, rich);

@@ -1,6 +1,6 @@
 package io.github.donttemptfate.fatesflipper;
 
-import io.github.donttemptfate.fates.common.text.LegacyText;
+import io.github.donttemptfate.fatescommon.text.LegacyText;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
