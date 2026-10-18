@@ -24,7 +24,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import io.github.donttemptfate.fatesflipper.compat.Compat;
+import io.github.donttemptfate.fatescommon.compat.Compat;
 
 import java.util.ArrayList;
 import java.util.List;

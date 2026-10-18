@@ -298,6 +298,25 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			ctx.waitTicks(10);
 			ctx.takeScreenshot("04_settings");
 			ctx.setScreen(() -> null);
+			// the shared theme (Fates Common settings), picked with /ff theme
+			ctx.runOnClient(mc -> {
+				ModConfig c = service.config().copy();
+				c.theme = "ember";
+				service.applyConfig(c);
+			});
+			ctx.runOnClient(mc -> {
+				if (io.github.donttemptfate.fatescommon.ui.Ui.theme() != io.github.donttemptfate.fatescommon.ui.Theme.EMBER) throw new AssertionError("theme not applied");
+				if (!"ember".equals(service.config().theme)) throw new AssertionError("theme not mirrored");
+			});
+			ctx.setScreen(() -> new ConfigScreen(null, service));
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("04b_settings_theme_ember");
+			ctx.setScreen(() -> null);
+			ctx.runOnClient(mc -> {
+				ModConfig c = service.config().copy();
+				c.theme = "fates";
+				service.applyConfig(c);
+			});
 
 			// 6. a revoked token stops the stream without retry storms
 			ctx.runOnClient(mc -> {

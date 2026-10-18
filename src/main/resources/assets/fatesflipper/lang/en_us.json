@@ -27,7 +27,7 @@
 	"fatesflipper.cmd.help.09": "alerts in dungeons and Kuudra too (off)",
 	"fatesflipper.cmd.help.10": "press the open key again to close the flip (on)",
 	"fatesflipper.cmd.help.11": "the Fates look; Fates item tooltips",
-	"fatesflipper.cmd.help.12": "Chakra Petch or Minecraft's font",
+	"fatesflipper.cmd.help.12": "Chakra Petch or Minecraft's font (shared with Fates OFA)",
 	"fatesflipper.cmd.help.13": "opt-in, off by default; turning it on asks you to confirm",
 	"fatesflipper.cmd.help.14": "connect again now",
 	"fatesflipper.cmd.help.title": "Fates Flipper commands",
@@ -249,5 +249,13 @@
 	"fatesflipper.addr.http": "Plain http:// would send your mod token unencrypted. Use https://, or http:// only for this computer, your home network or a Tailscale address.",
 	"fatesflipper.addr.https": "The address must start with https://.",
 	"fatesflipper.toggle.on": "ON",
-	"fatesflipper.toggle.off": "OFF"
+	"fatesflipper.toggle.off": "OFF",
+	"fatesflipper.settings.t.theme": "Theme",
+	"fatesflipper.settings.shared": "shared with Fates OFA",
+	"fatesflipper.settings.t.dungeons": "Dungeons",
+	"fatesflipper.cmd.font.chakra": "Font: Chakra Petch (shared with Fates OFA).",
+	"fatesflipper.cmd.font.vanilla": "Font: Minecraft (shared with Fates OFA).",
+	"fatesflipper.cmd.theme.list": "Theme: %s. Choose one with /ff theme <name>: %s (shared with Fates OFA).",
+	"fatesflipper.cmd.theme.set": "Theme: %s (shared with Fates OFA).",
+	"fatesflipper.cmd.help.theme": "colour theme: fates, midnight, ember, vanilla (shared with Fates OFA)"
 }

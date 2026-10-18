@@ -54,8 +54,9 @@ public final class Commands {
 				.then(toggle("skyblock", s, (cfg, v) -> cfg.onlyInSkyBlock = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.skyblock")))
 				.then(toggle("dungeons", s, (cfg, v) -> cfg.alertsInDungeons = v, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.t.dungeons")))
 				.then(ClientCommands.literal("font")
-						.then(ClientCommands.literal("chakra").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, true, "Font: Chakra Petch.")))
-						.then(ClientCommands.literal("vanilla").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, false, "Font: Minecraft."))))
+						.then(ClientCommands.literal("chakra").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, true, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.font.chakra"))))
+						.then(ClientCommands.literal("vanilla").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, false, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.font.vanilla")))))
+				.then(themeCommand(s))
 				.then(ClientCommands.literal("cursorassist")
 						// turning it on needs a second, typed confirmation (Fate, 2026-10-18)
 						.then(ClientCommands.literal("on").executes(c -> {
@@ -110,6 +111,24 @@ public final class Commands {
 		return 1;
 	}
 
+	/** /ff theme: lists the themes; /ff theme <id> picks one (shared with Fates OFA). */
+	private static LiteralArgumentBuilder<FabricClientCommandSource> themeCommand(FlipService s) {
+		LiteralArgumentBuilder<FabricClientCommandSource> b = ClientCommands.literal("theme").executes(c -> {
+			Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.theme.list", s.config().theme, String.join(", ", io.github.donttemptfate.fatescommon.ui.Theme.ids())));
+			return 1;
+		});
+		for (io.github.donttemptfate.fatescommon.ui.Theme t : io.github.donttemptfate.fatescommon.ui.Theme.ALL) {
+			b.then(ClientCommands.literal(t.id()).executes(c -> {
+				ModConfig next = s.config().copy();
+				next.theme = t.id();
+				s.applyConfig(next);
+				Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.theme.set", t.name()));
+				return 1;
+			}));
+		}
+		return b;
+	}
+
 	private static int help() {
 		Chat.send(Chat.prefix().append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.title")).withStyle(ChatFormatting.WHITE)));
 		String[][] rows = {
@@ -125,6 +144,7 @@ public final class Commands {
 				{"/ff closekey on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.10")},
 				{"/ff look|fatestooltips on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.11")},
 				{"/ff font chakra|vanilla", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.12")},
+				{"/ff theme [name]", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.theme")},
 				{"/ff cursorassist on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.13")},
 				{"/ff reconnect", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.14")},
 		};
@@ -155,7 +175,7 @@ public final class Commands {
 		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.version"), s.modVersion() + (s.updateRequired() != null ? " " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.version.outdated") : ""));
 		row(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.status.toggles"), "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
 				+ ", hud " + onOff(c.hudStatus) + ", close key " + onOff(c.pressAgainToClose) + ", cursor assist " + onOff(c.cursorAssist)
-				+ ", look " + onOff(c.fatesLook) + ", Fates tooltips " + onOff(c.fatesTooltips) + ", font " + (c.chakraFont ? "Chakra" : "Minecraft"));
+				+ ", look " + onOff(c.fatesLook) + ", Fates tooltips " + onOff(c.fatesTooltips) + ", font " + (c.chakraFont ? "Chakra" : "Minecraft") + ", theme " + c.theme);
 		s.api().ping().thenAccept(r -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
 			if (r.ok()) {
 				JsonObject j = r.json();

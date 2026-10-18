@@ -21,7 +21,7 @@ public final class ConfigScreen extends Screen {
 
 	/** Layout: everything fits in 220 scaled pixels (480p at GUI scale 2), centred when taller. */
 	private static final int W = 330;
-	private static final int H = 220;
+	private static final int H = 242;
 
 	private final Screen parent;
 	private final FlipService service;
@@ -80,7 +80,7 @@ public final class ConfigScreen extends Screen {
 		y += 20;
 		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.look"), c -> c.fatesLook, c -> c.fatesLook = !c.fatesLook);
 		toggle(cx[1], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.fatestooltips"), c -> c.fatesTooltips, c -> c.fatesTooltips = !c.fatesTooltips);
-		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.chakra"), c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.dungeons"), c -> c.alertsInDungeons, c -> c.alertsInDungeons = !c.alertsInDungeons);
 		y += 20;
 		toggle(cx[0], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.closekey"), c -> c.pressAgainToClose, c -> c.pressAgainToClose = !c.pressAgainToClose);
 		// turning it on needs /ff cursorassist on + CONFIRM (Fate, 2026-10-18); off works here
@@ -89,6 +89,16 @@ public final class ConfigScreen extends Screen {
 			else setMessage(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.ca.how"), 0xFFFFAA33);
 		});
 		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.skyblock"), c -> c.onlyInSkyBlock, c -> c.onlyInSkyBlock = !c.onlyInSkyBlock);
+
+		// shared with Fates OFA (one font and one theme for all Fates mods, saved by Fates Common)
+		y += 20;
+		addRenderableWidget(Button.builder(themeLabel(), btn -> {
+			java.util.List<io.github.donttemptfate.fatescommon.ui.Theme> all = io.github.donttemptfate.fatescommon.ui.Theme.ALL;
+			int i = all.indexOf(io.github.donttemptfate.fatescommon.ui.Theme.byId(draft.theme));
+			draft.theme = all.get((i + 1) % all.size()).id();
+			btn.setMessage(themeLabel());
+		}).bounds(cx[0], y, 2 * col + 6, 18).build());
+		toggle(cx[2], y, col, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.chakra"), c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
 
 		int third = (W - 12) / 3;
 		int by = t + H - 20;
@@ -103,6 +113,13 @@ public final class ConfigScreen extends Screen {
 			btn.setMessage(label(label, get.apply(draft)));
 		}).bounds(x, y, w, 18).build();
 		addRenderableWidget(b);
+	}
+
+	private Component themeLabel() {
+		io.github.donttemptfate.fatescommon.ui.Theme th = io.github.donttemptfate.fatescommon.ui.Theme.byId(draft.theme);
+		return io.github.donttemptfate.fatescommon.ui.Ui.t(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.t.theme") + ": ", io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0xFFFFFF)
+				.append(io.github.donttemptfate.fatescommon.ui.Ui.t(th.name(), io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, th.accent() & 0xFFFFFF))
+				.append(io.github.donttemptfate.fatescommon.ui.Ui.t("  " + io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.shared"), io.github.donttemptfate.fatescommon.ui.Ui.Role.SMALL, 0xAAAAAA));
 	}
 
 	private static Component label(String label, boolean on) {
@@ -174,7 +191,7 @@ public final class ConfigScreen extends Screen {
 		int x = (this.width - W) / 2;
 		int t = top();
 		new io.github.donttemptfate.fatescommon.ui.Card.Line(
-				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.head"), io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.PINK)),
+				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.head"), io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.accent())),
 				java.util.List.of(io.github.donttemptfate.fatescommon.ui.Card.seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.head.settings"), io.github.donttemptfate.fatescommon.ui.Ui.Role.LABEL, io.github.donttemptfate.fatescommon.ui.Ui.GRAY)))
 				.draw(g, x, t + 2, W);
 		rule(g, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.rule.server"), x, t + 22);
@@ -185,7 +202,7 @@ public final class ConfigScreen extends Screen {
 					io.github.donttemptfate.fatescommon.ui.Ui.Role.BODY, 0, 1).draw(g, x + 4, t + 68, W - 60);
 		}
 		rule(g, io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.settings.rule.display"), x, t + 84);
-		int ty = t + 177;
+		int ty = t + 199;
 		String text = message.isEmpty() ? cursorAssistRisk() : message;
 		int color = message.isEmpty() ? 0xFFFFAA00 : messageColor;
 		new io.github.donttemptfate.fatescommon.ui.Card.Text(

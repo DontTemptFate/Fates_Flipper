@@ -74,7 +74,7 @@ public final class Cards {
 			boolean cursorAssist, boolean closeKey, boolean compact) {
 		Card c = new Card(0.80f, compact ? 110 : 150, compact ? 140 : 196).gap(compact ? 3 : 4);
 		String listed = f != null && f.firstSeenAt() > 0 ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.bin_listed", up(Coins.age(System.currentTimeMillis() - f.firstSeenAt()))) : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.bin");
-		c.add(new Line(List.of(seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates_flipper"), Role.LABEL, Ui.PINK)), List.of(seg(listed, Role.LABEL, Ui.GRAY))));
+		c.add(new Line(List.of(seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates_flipper"), Role.LABEL, Ui.accent())), List.of(seg(listed, Role.LABEL, Ui.GRAY))));
 		if (f != null) {
 			c.add(Line.of(seg(LegacyText.strip(f.name()), Role.TITLE, Ui.WHITE)));
 			if (!Double.isNaN(f.safeProfit())) {
@@ -204,16 +204,16 @@ public final class Cards {
 		JsonObject d = v.data();
 		switch (v.kind()) {
 			case LOADING -> {
-				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.PINK, null));
+				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.accent(), null));
 				c.add(valueRow(seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.loading"), Role.SMALL, Ui.DARK)));
 			}
 			case FOUND -> found(c, d);
 			case BAZAAR -> {
-				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.PINK, null));
+				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.accent(), null));
 				c.add(valueRow(seg(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.bazaar_item_see_the_bazaar_for_prices"), Role.SMALL, Ui.DARK)));
 			}
 			case NO_EXACT, NOT_TRADED -> {
-				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.PINK, null));
+				c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.accent(), null));
 				if (!rough(c, d)) {
 					c.add(valueRow(seg(v.kind() == PriceTooltips.Kind.NO_EXACT ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.no_sales_of_this_exact_item_yet")
 							: io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.not_traded_since_tracking_started"), Role.SMALL, Ui.DARK)));
@@ -249,7 +249,7 @@ public final class Cards {
 		long last = Json.lng(d, "last_traded_at", 0);
 		String meta = last > 0 && System.currentTimeMillis() - last > 3_600_000L
 				? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.last_trade", up(Coins.age(System.currentTimeMillis() - last))) : null;
-		c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.PINK, meta));
+		c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.fates"), Ui.accent(), meta));
 		if (learning || Double.isNaN(market)) {
 			if (!rough(c, d)) {
 				c.add(valueRow(seg("MIXED".equals(conf) ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.split") : io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.tip.learning"), Role.SMALL, Ui.DARK)));
