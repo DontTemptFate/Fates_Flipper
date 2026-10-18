@@ -36,50 +36,9 @@ public final class ItemBytes {
 	static final int MAX_CUSTOM_DATA_BYTES = 64 * 1024;
 	static final int MAX_LORE_LINES = 64;
 
-	/**
-	 * What the mod reads from one item, worked out once per item (audit F-P1): tooltips are drawn every
-	 * frame, and copying the item's data and re-reading its lore each frame was the costly part.
-	 * Read-only: never change {@code data}.
-	 */
-	public record Facts(CompoundTag data, List<Component> lore, List<String> plain, int listingCut, String cacheKey) {
-		/** The item's own lore: without Hypixel's auction listing lines. */
-		public List<Component> ownLore() {
-			return listingCut < 0 ? lore : lore.subList(0, listingCut);
-		}
-	}
-
-	private record Cached(int count, Object customData, Object lore, Object name, Facts facts) {}
-
-	/** Weak keys: an item Hypixel replaced is forgotten with it. ItemStack compares by identity. */
-	private static final java.util.Map<ItemStack, Cached> FACTS = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
-
-	public static Facts facts(ItemStack stack) {
-		if (stack == null || stack.isEmpty()) return null;
-		Object cd = stack.get(DataComponents.CUSTOM_DATA);
-		Object lr = stack.get(DataComponents.LORE);
-		Object nm = stack.get(DataComponents.CUSTOM_NAME);
-		Cached c = FACTS.get(stack);
-		if (c != null && c.count == stack.getCount() && c.customData == cd && c.lore == lr && c.name == nm) return c.facts;
-		Facts f = compute(stack);
-		FACTS.put(stack, new Cached(stack.getCount(), cd, lr, nm, f));
-		return f;
-	}
-
-	private static Facts compute(ItemStack stack) {
-		CustomData cd = stack.get(DataComponents.CUSTOM_DATA);
-		CompoundTag tag = cd == null ? null : cd.copyTag();
-		if (tag != null && tag.getStringOr("id", "").isEmpty()) tag = null;
-		ItemLore il = stack.get(DataComponents.LORE);
-		List<Component> lore = il == null ? List.of() : il.lines();
-		List<String> plain = plain(lore);
-		int cut = io.github.donttemptfate.fatesflipper.core.LoreParts.listingStart(plain);
-		String key = null;
-		if (tag != null) {
-			List<Component> own = cut < 0 ? lore : lore.subList(0, cut);
-			int h = Objects.hash(tag, displayName(stack).getString(), own.stream().map(Component::getString).toList(), stack.getCount());
-			key = "h:" + Integer.toHexString(h) + ":" + tag.getStringOr("id", "");
-		}
-		return new Facts(tag, lore, plain, cut, key);
+	/** What the mod reads from one item, worked out once per item (Fates Common; audit F-P1). */
+	public static io.github.donttemptfate.fates.common.skyblock.ItemFacts facts(ItemStack stack) {
+		return io.github.donttemptfate.fates.common.skyblock.ItemFacts.of(stack);
 	}
 
 	/** The item's SkyBlock data (read-only), or {@code null} when it has none (no custom data or no "id"). */
@@ -100,9 +59,7 @@ public final class ItemBytes {
 
 	/** Lore lines as plain text (colour codes removed). */
 	public static List<String> plain(List<Component> lines) {
-		List<String> out = new java.util.ArrayList<>(lines.size());
-		for (Component c : lines) out.add(io.github.donttemptfate.fatesflipper.core.LegacyText.strip(c.getString()));
-		return out;
+		return io.github.donttemptfate.fates.common.skyblock.ItemFacts.plain(lines);
 	}
 
 	public static List<Component> lore(ItemStack stack) {
@@ -110,7 +67,7 @@ public final class ItemBytes {
 		return f == null ? List.of() : f.lore();
 	}
 
-	/** The item's own lore: without Hypixel's auction listing lines (see {@link io.github.donttemptfate.fatesflipper.core.LoreParts}). */
+	/** The item's own lore: without Hypixel's auction listing lines (see {@link io.github.donttemptfate.fates.common.skyblock.LoreParts}). */
 	public static List<Component> ownLore(ItemStack stack) {
 		Facts f = facts(stack);
 		return f == null ? List.of() : f.ownLore();

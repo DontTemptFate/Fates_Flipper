@@ -1,5 +1,8 @@
 package io.github.donttemptfate.fatesflipper.core;
 
+import io.github.donttemptfate.fates.common.text.LegacyText;
+import io.github.donttemptfate.fates.common.text.Versions;
+
 import com.google.gson.JsonObject;
 
 import java.net.URI;

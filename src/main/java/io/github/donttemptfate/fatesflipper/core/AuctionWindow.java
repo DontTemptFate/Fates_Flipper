@@ -1,5 +1,7 @@
 package io.github.donttemptfate.fatesflipper.core;
 
+import io.github.donttemptfate.fates.common.text.LegacyText;
+
 import java.util.List;
 import java.util.Locale;
 

@@ -1,5 +1,8 @@
 package io.github.donttemptfate.fatesflipper.ui;
 
+import io.github.donttemptfate.fates.common.ui.Card;
+import io.github.donttemptfate.fates.common.ui.DeferredTooltip;
+
 import io.github.donttemptfate.fatesflipper.FatesFlipperClient;
 import io.github.donttemptfate.fatesflipper.FlipService;
 import io.github.donttemptfate.fatesflipper.ItemBytes;
@@ -37,7 +40,7 @@ public final class ItemTooltips {
 		int h = g.guiHeight();
 		widest = Math.max(widest, card.contentWidth());
 		card.atLeast(widest);
-		((DeferredTooltip) g).fatesflipper$setDeferredTooltip(() -> {
+		((DeferredTooltip) g).fatescommon$setDeferredTooltip(() -> {
 			try {
 				int ch = card.height();
 				int cw = card.width();

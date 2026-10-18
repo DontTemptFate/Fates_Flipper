@@ -1,5 +1,8 @@
 package io.github.donttemptfate.fatesflipper.core;
 
+import io.github.donttemptfate.fates.common.text.Coins;
+import io.github.donttemptfate.fates.common.text.LegacyText;
+
 import com.google.gson.JsonObject;
 
 /**

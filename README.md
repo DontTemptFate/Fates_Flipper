@@ -14,6 +14,7 @@ your own two clicks.
 - **Fabric API** for the same version (at least the version the jar was built with)
 - A Fates Flipper account and a **mod token** (website → account menu → Mod tokens)
 - Optional: **Mod Menu** (the gear button opens the settings)
+- Bundled: **Fates Common**, the library shared with Fates OFA (nothing to install)
 
 ## Install and first run
 
@@ -92,11 +93,12 @@ Version-specific numbers are in `versions/<mc>.properties`; the little version-s
 
 Every push to `main` is built and tested for both versions by GitHub Actions (unit tests and an
 in-game test against a fake website, with screenshots); results are published to the `ci-results`
-branch. Pushing a tag `v<version>` (e.g. `v0.3.4`, or `v0.3.4-beta.1` for a beta) builds both jars
-and publishes a GitHub Release with `SHA256SUMS.txt` and the changelog, and uploads to Modrinth when
-the project is set up there.
+branch. **Releases:** Actions → *Release* → *Run workflow* (or pushing a tag `v<version>`) builds
+both jars from the `version` in `gradle.properties` (`-beta.N` = pre-release), creates the tag, and
+publishes a GitHub Release with `SHA256SUMS.txt` and the changelog; it also uploads to Modrinth once
+the repository has the `MODRINTH_TOKEN` secret and `MODRINTH_PROJECT_ID` variable.
 
 ## Licence
 
-GPL-3.0-only. See [LICENSE](LICENSE). Bundles the Chakra Petch font (SIL Open Font License 1.1,
-`licenses/chakra-petch-OFL.txt` in the jar).
+GPL-3.0-only. See [LICENSE](LICENSE). Bundles [Fates Common](https://github.com/DontTemptFate/Fates_Common)
+(GPL-3.0-only), which carries the Chakra Petch font (SIL Open Font License 1.1).
