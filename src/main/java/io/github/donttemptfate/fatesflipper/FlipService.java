@@ -55,11 +55,68 @@ public final class FlipService implements FlipStream.Listener {
 	private volatile long stateChangedAtMs;
 	private volatile boolean announcedConnected;
 
+	// ---- version handshake (audit F-S5; viewer /mod/ping mod_min_version / mod_latest_version) ----
+	private final String modVersion;
+	/** Set when the server needs a newer mod: flips stop, hover prices keep working. */
+	private volatile String updateRequired;
+	private volatile boolean toldAboutLatest;
+	private volatile long versionCheckedAtMs;
+
+	public String modVersion() {
+		return modVersion;
+	}
+
+	/** Why flips are stopped for an outdated mod, or null. */
+	public String updateRequired() {
+		return updateRequired;
+	}
+
+	/** Once per connection (at most every 10 min): asks the viewer which mod versions it wants. */
+	void checkVersion() {
+		long now = System.currentTimeMillis();
+		if (now - versionCheckedAtMs < 10 * 60_000) return;
+		versionCheckedAtMs = now;
+		api.ping().thenAccept(r -> {
+			if (!r.ok()) return;
+			applyVersions(Json.str(r.json(), "mod_min_version"), Json.str(r.json(), "mod_latest_version"),
+					io.github.donttemptfate.fatesflipper.core.Versions.safeUrl(Json.str(r.json(), "mod_download_url")));
+		});
+	}
+
+	public void applyVersions(String min, String latest, String url) {
+		if (io.github.donttemptfate.fatesflipper.core.Versions.valid(min)
+				&& io.github.donttemptfate.fatesflipper.core.Versions.compare(modVersion, min) < 0) {
+			blockOutdated(min, url);
+			return;
+		}
+		if (!toldAboutLatest && io.github.donttemptfate.fatesflipper.core.Versions.valid(latest)
+				&& io.github.donttemptfate.fatesflipper.core.Versions.compare(modVersion, latest) < 0) {
+			toldAboutLatest = true;
+			mc.execute(() -> Chat.info("Fates Flipper " + latest + " is available (you have " + modVersion + ")"
+					+ (url != null ? ": " + url : ".")));
+		}
+	}
+
+	private void blockOutdated(String min, String url) {
+		String msg = "Fates Flipper " + (min != null ? min + " or newer" : "a newer version") + " is required (you have " + modVersion + ")"
+				+ (url != null ? ". Get it at " + url : "") + ". Flips are off; hover prices still work.";
+		boolean first = updateRequired == null;
+		updateRequired = msg;
+		stream.poke();
+		if (first) mc.execute(() -> Chat.error(msg));
+	}
+
+	@Override
+	public void onOutdated(String min, String url) {
+		blockOutdated(min, url);
+	}
+
 	public FlipService(Minecraft mc, ModConfig config, String version) {
 		this.mc = mc;
 		this.config = config;
 		io.github.donttemptfate.fatesflipper.ui.Ui.useChakra(config.chakraFont);
-		this.api = new ViewerApi(() -> this.config, version);
+		this.modVersion = io.github.donttemptfate.fatesflipper.core.Versions.plain(version);
+		this.api = new ViewerApi(() -> this.config, modVersion + " (Minecraft " + io.github.donttemptfate.fatesflipper.compat.Compat.MINECRAFT + ")");
 		this.stream = new FlipStream(api, this, this::streamAllowed);
 		this.itemPrices = new PriceCache(api::priceByItem, System::currentTimeMillis, 3);
 	}
@@ -96,7 +153,8 @@ public final class FlipService implements FlipStream.Listener {
 			profileName = null;
 			chatSettings = null;
 			stream.restart();
-		} else if (prev.alerts != next.alerts || prev.onlyOnHypixel != next.onlyOnHypixel) {
+		} else if (prev.alerts != next.alerts || prev.onlyOnHypixel != next.onlyOnHypixel
+				|| prev.onlyInSkyBlock != next.onlyInSkyBlock || prev.alertsInDungeons != next.alertsInDungeons) {
 			stream.poke(); // start or stop the stream; display toggles don't touch the connection
 		}
 	}
@@ -120,7 +178,25 @@ public final class FlipService implements FlipStream.Listener {
 	}
 
 	private boolean streamAllowed() {
-		return config.alerts && active();
+		return config.alerts && active() && updateRequired == null && (!config.onlyInSkyBlock || inSkyBlockForAlerts());
+	}
+
+	/** SkyBlock (and, unless allowed, not in dungeons / Kuudra), read from the sidebar each tick (audit F-R6). */
+	private volatile boolean inSkyBlock = true;
+
+	public void setLocation(boolean skyBlock, boolean instance) {
+		boolean was = inSkyBlockForAlerts();
+		inSkyBlock = skyBlock;
+		inInstance = instance;
+		if (was != inSkyBlockForAlerts()) stream.poke();
+	}
+
+	private volatile boolean inInstance;
+
+	/** Only judged on Hypixel (elsewhere, e.g. a test server, there's no SkyBlock sidebar to read). */
+	boolean inSkyBlockForAlerts() {
+		if (!onHypixel) return true;
+		return inSkyBlock && (config.alertsInDungeons || !inInstance);
 	}
 
 	public void setOnHypixel(boolean value) {
@@ -192,6 +268,7 @@ public final class FlipService implements FlipStream.Listener {
 				announcedConnected = true;
 				Chat.info("Connected to Fates Viewer. Flips will show here.");
 				refreshChatSettings();
+				checkVersion();
 			} else if (state == FlipStream.State.STOPPED && prev != FlipStream.State.STOPPED) {
 				Chat.error(detail);
 			}
@@ -199,6 +276,9 @@ public final class FlipService implements FlipStream.Listener {
 	}
 
 	@Override
+	static final int SEEN_FLIPS = 200;
+	private final java.util.LinkedHashSet<String> seenFlips = new java.util.LinkedHashSet<>();
+
 	public void onFlip(JsonObject json) {
 		FlipEvent f = FlipEvent.parse(json);
 		if (f == null) return;
@@ -207,6 +287,13 @@ public final class FlipService implements FlipStream.Listener {
 			return;
 		}
 		synchronized (this) {
+			// a replayed or re-sent flip never dings or prints twice (audit F-R2)
+			if (!seenFlips.add(f.auctionId())) return;
+			Iterator<String> it = seenFlips.iterator();
+			while (seenFlips.size() > SEEN_FLIPS && it.hasNext()) {
+				it.next();
+				it.remove();
+			}
 			recent.addFirst(f);
 			while (recent.size() > 30) recent.removeLast();
 		}
@@ -225,27 +312,52 @@ public final class FlipService implements FlipStream.Listener {
 		}
 	}
 
-	/** Reads the active profile's chat settings (sound etc.) from {@code /api/profiles}. */
+	/**
+	 * Reads the active profile's chat settings (sound etc.): from {@code /mod/profiles} when the viewer
+	 * sends them there (handoff-mod-to-viewer-mod-service-2026-10-18), else from {@code /api/profiles}.
+	 */
 	public void refreshChatSettings() {
-		api.profileSettings().thenAccept(r -> {
-			if (!r.ok()) return;
-			JsonObject json = r.json();
-			JsonElement active = json.get("active");
-			JsonArray list = Json.arr(json, "profiles");
-			if (active == null || active.isJsonNull() || list == null) {
-				chatSettings = null;
+		api.profiles().thenAccept(r -> {
+			JsonObject fromMod = r.ok() ? activeChat(r.json()) : null;
+			if (fromMod != null) {
+				chatSettings = fromMod;
 				return;
 			}
-			for (JsonElement e : list) {
-				if (!e.isJsonObject()) continue;
-				JsonObject p = e.getAsJsonObject();
-				JsonElement id = p.get("id");
-				if (id != null && id.equals(active)) {
-					chatSettings = Json.obj(Json.obj(p, "settings"), "chat");
+			api.profileSettings().thenAccept(r2 -> {
+				if (!r2.ok()) return;
+				JsonObject json = r2.json();
+				JsonElement active = json.get("active");
+				JsonArray list = Json.arr(json, "profiles");
+				if (active == null || active.isJsonNull() || list == null) {
+					chatSettings = null;
 					return;
 				}
-			}
+				for (JsonElement e : list) {
+					if (!e.isJsonObject()) continue;
+					JsonObject p = e.getAsJsonObject();
+					JsonElement id = p.get("id");
+					if (id != null && id.equals(active)) {
+						chatSettings = Json.obj(Json.obj(p, "settings"), "chat");
+						return;
+					}
+				}
+			});
 		});
+	}
+
+	/** {@code active_chat}, or {@code chat} on the active profile's entry, from {@code /mod/profiles}; null if absent. */
+	static JsonObject activeChat(JsonObject json) {
+		JsonObject top = Json.obj(json, "active_chat");
+		if (top != null) return top;
+		JsonElement active = json == null ? null : json.get("active");
+		JsonArray list = Json.arr(json, "profiles");
+		if (active == null || active.isJsonNull() || list == null) return null;
+		for (JsonElement e : list) {
+			if (!e.isJsonObject()) continue;
+			JsonObject p = e.getAsJsonObject();
+			if (active.equals(p.get("id"))) return Json.obj(p, "chat");
+		}
+		return null;
 	}
 
 	/** Sound on alerts: the player's setting, unless the active profile turned it off. */
@@ -294,6 +406,33 @@ public final class FlipService implements FlipStream.Listener {
 			if (r.ok() && o != null && o.auctionId().equals(id)) lastOpenedPrice = r.json();
 		});
 		return true;
+	}
+
+	/**
+	 * {@code /ff open <id>} (clicking a flip line in chat): checks the auction is still up first, like
+	 * the open keys, so an old chat line never opens a sold auction (audit F-R4). One lookup, then at
+	 * most one command.
+	 */
+	public void openFromChat(String rawId) {
+		String id = AuctionIds.normalize(rawId);
+		if (id == null) {
+			Chat.error("That isn't an auction id.");
+			return;
+		}
+		if (lookupInFlight) return;
+		lookupInFlight = true;
+		api.auction(id).thenAccept(state -> {
+			String s = state.ok() ? Json.str(state.json(), "state") : "unknown";
+			if ("sold".equals(s) || "gone".equals(s)) {
+				synchronized (this) {
+					openedIds.add(id);
+				}
+				FlipEvent f = recentFlip(id);
+				mc.execute(() -> Chat.warn((f == null ? "That auction" : f.name()) + " already " + ("sold".equals(s) ? "sold." : "ended.")));
+				return;
+			}
+			mc.execute(() -> openAuction(id, null));
+		}).whenComplete((v, ex) -> lookupInFlight = false);
 	}
 
 	/** A press of an open-flip key may act now (shared by open and close, so a quick double tap can't close and reopen). */

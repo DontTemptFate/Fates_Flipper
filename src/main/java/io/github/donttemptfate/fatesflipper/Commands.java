@@ -51,15 +51,25 @@ public final class Commands {
 				.then(toggle("closekey", s, (cfg, v) -> cfg.pressAgainToClose = v, "Press the open key again to close a flip"))
 				.then(toggle("look", s, (cfg, v) -> cfg.fatesLook = v, "Fates look"))
 				.then(toggle("fatestooltips", s, (cfg, v) -> cfg.fatesTooltips = v, "Fates item tooltips"))
+				.then(toggle("skyblock", s, (cfg, v) -> cfg.onlyInSkyBlock = v, "Alerts only in SkyBlock"))
+				.then(toggle("dungeons", s, (cfg, v) -> cfg.alertsInDungeons = v, "Alerts in dungeons and Kuudra"))
 				.then(ClientCommands.literal("font")
 						.then(ClientCommands.literal("chakra").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, true, "Font: Chakra Petch.")))
 						.then(ClientCommands.literal("vanilla").executes(c -> setBool(s, (cfg, v) -> cfg.chakraFont = v, false, "Font: Minecraft."))))
 				.then(ClientCommands.literal("cursorassist")
+						// turning it on needs a second, typed confirmation (Fate, 2026-10-18)
 						.then(ClientCommands.literal("on").executes(c -> {
-							setBool(s, (cfg, v) -> cfg.cursorAssist = v, true, "Cursor assist on.");
+							if (s.config().cursorAssist) {
+								Chat.info("Cursor assist is already on.");
+								return 1;
+							}
 							Chat.warn(ConfigScreen.CURSOR_ASSIST_RISK);
+							Chat.warn("To turn it on, type: /ff cursorassist on CONFIRM");
 							return 1;
-						}))
+						}).then(ClientCommands.literal("CONFIRM").executes(c -> {
+							setBool(s, (cfg, v) -> cfg.cursorAssist = v, true, "Cursor assist on. /ff cursorassist off to turn it off.");
+							return 1;
+						})))
 						.then(ClientCommands.literal("off").executes(c -> setBool(s, (cfg, v) -> cfg.cursorAssist = v, false, "Cursor assist off."))))
 				.then(ClientCommands.literal("server")
 						.then(ClientCommands.argument("address", StringArgumentType.greedyString()).executes(c -> server(s, c))))
@@ -71,7 +81,7 @@ public final class Commands {
 				.then(ClientCommands.literal("recent").executes(c -> recent(s)))
 				.then(ClientCommands.literal("open")
 						.then(ClientCommands.argument("id", StringArgumentType.word()).executes(c -> {
-							s.openAuction(StringArgumentType.getString(c, "id"), null);
+							s.openFromChat(StringArgumentType.getString(c, "id"));
 							return 1;
 						})))
 				.then(ClientCommands.literal("best").executes(c -> {
@@ -110,10 +120,12 @@ public final class Commands {
 				{"/ff profiles", "list your flip profiles; /ff profile <name> to switch, /ff profile off"},
 				{"/ff on | off", "flip alerts on / off"},
 				{"/ff sound|tooltips|overlay|hud on|off", "toggles"},
+				{"/ff skyblock on|off", "alerts only in SkyBlock (on)"},
+				{"/ff dungeons on|off", "alerts in dungeons and Kuudra too (off)"},
 				{"/ff closekey on|off", "press the open key again to close the flip (on)"},
 				{"/ff look|fatestooltips on|off", "the Fates look; Fates item tooltips"},
 				{"/ff font chakra|vanilla", "Chakra Petch or Minecraft's font"},
-				{"/ff cursorassist on|off", "opt-in, off by default (read the warning)"},
+				{"/ff cursorassist on|off", "opt-in, off by default; turning it on asks you to confirm"},
 				{"/ff reconnect", "connect again now"},
 		};
 		for (String[] r : rows) {
@@ -140,6 +152,7 @@ public final class Commands {
 		};
 		row("Flip alerts", st);
 		row("Flip profile", s.profileName() == null ? "(none / unknown)" : s.profileName());
+		row("Version", s.modVersion() + (s.updateRequired() != null ? " (update required: flips are off)" : ""));
 		row("Toggles", "sound " + onOff(c.sound) + ", tooltips " + onOff(c.tooltips) + ", overlay " + onOff(c.auctionOverlay)
 				+ ", hud " + onOff(c.hudStatus) + ", close key " + onOff(c.pressAgainToClose) + ", cursor assist " + onOff(c.cursorAssist)
 				+ ", look " + onOff(c.fatesLook) + ", Fates tooltips " + onOff(c.fatesTooltips) + ", font " + (c.chakraFont ? "Chakra" : "Minecraft"));

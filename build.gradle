@@ -46,11 +46,15 @@ fabricApi {
 processResources {
 	def version = project.version
 	def minecraftDep = project.minecraft_dep
+	// at least the Fabric API this jar was built against: an older one gets a clear loader message
+	// instead of a crash (audit F-C2)
+	def fabricApiDep = ">=" + project.fabric_api_version.split("\\+")[0]
 	inputs.property "version", version
 	inputs.property "minecraftDep", minecraftDep
+	inputs.property "fabricApiDep", fabricApiDep
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version, "minecraft_dep": minecraftDep
+		expand "version": version, "minecraft_dep": minecraftDep, "fabric_api_dep": fabricApiDep
 	}
 }
 
@@ -73,6 +77,9 @@ test {
 }
 
 jar {
+	// compile-time copies of Mod Menu's two interfaces (src/main/java/com/terraformersmc): never shipped,
+	// the real ones come with Mod Menu when it's installed
+	exclude "com/terraformersmc/**"
 	def projectName = project.name
 	inputs.property "projectName", projectName
 

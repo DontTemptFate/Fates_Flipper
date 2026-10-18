@@ -10,10 +10,16 @@ public final class Coins {
 		if (Double.isNaN(coins) || Double.isInfinite(coins)) return "?";
 		double a = Math.abs(coins);
 		String sign = coins < 0 ? "-" : "";
-		if (a >= 1e9) return sign + trim(a / 1e9) + "B";
-		if (a >= 1e6) return sign + trim(a / 1e6) + "M";
-		if (a >= 1e3) return sign + trim(a / 1e3) + "k";
-		return sign + String.format(Locale.ROOT, "%.0f", a);
+		// round first, then pick the unit: 999,999.5 is "1M", not "1000k" (audit F-R7)
+		double[] units = {1e9, 1e6, 1e3, 1};
+		String[] names = {"B", "M", "k", ""};
+		for (int i = 0; i < units.length; i++) {
+			if (a < units[i] && i < units.length - 1) continue;
+			String shown = i == units.length - 1 ? String.format(Locale.ROOT, "%.0f", a) : trim(a / units[i]);
+			if (i > 0 && Double.parseDouble(shown) >= 1000) return sign + trim(a / units[i - 1]) + names[i - 1];
+			return sign + shown + names[i];
+		}
+		return sign + "0";
 	}
 
 	private static String trim(double v) {

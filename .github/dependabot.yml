@@ -1,0 +1,14 @@
+# Keeps the build tools current: Gradle plugins / libraries (Loom, Fabric API) and the pinned
+# GitHub Actions. Minecraft and Fabric API versions per Minecraft release are set by hand in
+# versions/*.properties, so those PRs only cover the build plugins.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

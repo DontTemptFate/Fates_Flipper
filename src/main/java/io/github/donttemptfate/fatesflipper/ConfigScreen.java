@@ -29,6 +29,7 @@ public final class ConfigScreen extends Screen {
 	private EditBox server;
 	private EditBox token;
 	private String message = "";
+	private boolean tokenShown;
 	private int messageColor = 0xFFAAAAAA;
 
 	public ConfigScreen(Screen parent, FlipService service) {
@@ -53,11 +54,18 @@ public final class ConfigScreen extends Screen {
 		server.setHint(Component.literal("https://your-viewer-address"));
 		addRenderableWidget(server);
 
-		token = new EditBox(this.font, x, t + 64, W, 16, Component.literal("Mod token"));
+		// hidden until "Show" (audit F-S1: streams and screenshots never show the token by accident)
+		token = new EditBox(this.font, x, t + 64, W - 56, 16, Component.literal("Mod token"));
 		token.setMaxLength(300);
 		token.setValue(draft.token);
 		token.setHint(Component.literal("fv_… (web page → account menu → Mod tokens)"));
+		token.visible = draft.token.isBlank() || tokenShown;
 		addRenderableWidget(token);
+		addRenderableWidget(Button.builder(Component.literal(token.visible ? "Hide" : "Show"), b -> {
+			tokenShown = !token.visible;
+			token.visible = tokenShown;
+			b.setMessage(Component.literal(token.visible ? "Hide" : "Show"));
+		}).bounds(x + W - 50, t + 62, 50, 20).build());
 
 		int col = (W - 12) / 3;
 		int y = t + 96;
@@ -75,7 +83,12 @@ public final class ConfigScreen extends Screen {
 		toggle(cx[2], y, col, "Chakra font", c -> c.chakraFont, c -> c.chakraFont = !c.chakraFont);
 		y += 20;
 		toggle(cx[0], y, col, "Key again closes", c -> c.pressAgainToClose, c -> c.pressAgainToClose = !c.pressAgainToClose);
-		toggle(cx[1], y, col, "Cursor assist", c -> c.cursorAssist, c -> c.cursorAssist = !c.cursorAssist);
+		// turning it on needs /ff cursorassist on + CONFIRM (Fate, 2026-10-18); off works here
+		toggle(cx[1], y, col, "Cursor assist", c -> c.cursorAssist, c -> {
+			if (c.cursorAssist) c.cursorAssist = false;
+			else setMessage("To turn cursor assist on, type /ff cursorassist on (it asks you to confirm).", 0xFFFFAA33);
+		});
+		toggle(cx[2], y, col, "SkyBlock only", c -> c.onlyInSkyBlock, c -> c.onlyInSkyBlock = !c.onlyInSkyBlock);
 
 		int third = (W - 12) / 3;
 		int by = t + H - 20;
@@ -165,7 +178,12 @@ public final class ConfigScreen extends Screen {
 				java.util.List.of(io.github.donttemptfate.fatesflipper.ui.Card.seg("SETTINGS", io.github.donttemptfate.fatesflipper.ui.Ui.Role.LABEL, io.github.donttemptfate.fatesflipper.ui.Ui.GRAY)))
 				.draw(g, x, t + 2, W);
 		rule(g, "SERVER ADDRESS", x, t + 22);
-		rule(g, "MOD TOKEN · KEPT ONLY IN CONFIG/FATESFLIPPER.JSON", x, t + 52);
+		rule(g, "MOD TOKEN · NEVER SHARE IT", x, t + 52);
+		if (!token.visible) {
+			new io.github.donttemptfate.fatesflipper.ui.Card.Text(
+					io.github.donttemptfate.fatesflipper.ui.Ui.t(ModConfig.maskToken(token.getValue()), io.github.donttemptfate.fatesflipper.ui.Ui.Role.BODY, 0xFFAAAAAA),
+					io.github.donttemptfate.fatesflipper.ui.Ui.Role.BODY, 0, 1).draw(g, x + 4, t + 68, W - 60);
+		}
 		rule(g, "DISPLAY & ALERTS", x, t + 84);
 		int ty = t + 177;
 		String text = message.isEmpty() ? CURSOR_ASSIST_RISK : message;
@@ -177,22 +195,6 @@ public final class ConfigScreen extends Screen {
 
 	private static void rule(GuiGraphicsExtractor g, String label, int x, int y) {
 		new io.github.donttemptfate.fatesflipper.ui.Card.Rule(label, io.github.donttemptfate.fatesflipper.ui.Ui.GRAY, null).draw(g, x, y, W);
-	}
-
-	private java.util.List<String> wrap(String text, int width) {
-		java.util.List<String> out = new java.util.ArrayList<>();
-		StringBuilder line = new StringBuilder();
-		for (String word : text.split(" ")) {
-			String test = line.length() == 0 ? word : line + " " + word;
-			if (this.font.width(test) > width && line.length() > 0) {
-				out.add(line.toString());
-				line = new StringBuilder(word);
-			} else {
-				line = new StringBuilder(test);
-			}
-		}
-		if (line.length() > 0) out.add(line.toString());
-		return out;
 	}
 
 	@Override

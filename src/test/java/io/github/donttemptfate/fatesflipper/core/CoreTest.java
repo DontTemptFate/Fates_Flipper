@@ -44,7 +44,7 @@ public class CoreTest {
 		assertEquals("http://localhost:8738", ServerAddress.check("http://localhost:8738").baseUrl());
 		assertFalse(ServerAddress.check("http://flips.example.com").ok());
 		assertFalse(ServerAddress.check("http://100.200.1.1").ok());
-		assertFalse(ServerAddress.check("http://10.0.0.5").ok());
+		assertTrue(ServerAddress.check("http://10.0.0.5").ok()); // LAN allowed since 0.3.4 (audit F-S3)
 		assertFalse(ServerAddress.check("ftp://x.com").ok());
 		assertFalse(ServerAddress.check("https://user:pw@x.com").ok());
 		assertFalse(ServerAddress.check("https://x.com/mod").ok());
@@ -304,6 +304,10 @@ public class CoreTest {
 		// not filled in yet
 		assertNull(AuctionWindow.matches(1e6, "Spooky Hook", -1, ""));
 		assertEquals("heroic hyperion", AuctionWindow.normalize("✪✪ Heroic  Hyperion ✪"));
+		// same price, different item (audit F-R3): not the flip
+		assertEquals(Boolean.FALSE, AuctionWindow.matches(100_000, "Spooky Hook", 100_000, "Titanium Cloak"));
+		// same price, item slot still empty: price alone decides
+		assertEquals(Boolean.TRUE, AuctionWindow.matches(100_000, "Spooky Hook", 100_000, ""));
 	}
 	@Test
 	public void loreListingFooter() {
@@ -341,5 +345,56 @@ public class CoreTest {
 		BazaarIds again = new BazaarIds(f);
 		assertTrue(again.contains("SEEDS"));
 		assertEquals(1, again.size());
+	}
+
+	@Test
+	public void coinsRoundBeforeUnit() {
+		assertEquals("1M", Coins.format(999_999.5));
+		assertEquals("1M", Coins.format(999_950));
+		assertEquals("1k", Coins.format(999.6));
+		assertEquals("999", Coins.format(999.4));
+		assertEquals("1B", Coins.format(999_999_999));
+		assertEquals("1.5M", Coins.format(1_500_000));
+		assertEquals("-2.5k", Coins.format(-2_500));
+	}
+
+	@Test
+	public void versions() {
+		assertTrue(Versions.compare("0.3.3", "0.3.4") < 0);
+		assertTrue(Versions.compare("0.3.10", "0.3.4") > 0);
+		assertTrue(Versions.compare("0.3.4-beta.2", "0.3.4") < 0);
+		assertTrue(Versions.compare("0.3.4-beta.2", "0.3.4-beta.10") < 0);
+		assertEquals(0, Versions.compare("0.3.4", "v0.3.4"));
+		assertEquals(0, Versions.compare("garbage", "0.3.4")); // never blocks on an unreadable value
+		assertEquals("0.3.4", Versions.plain("0.3.4+mc26.3"));
+		assertEquals("https://modrinth.com/mod/x", Versions.safeUrl("https://modrinth.com/mod/x"));
+		assertNull(Versions.safeUrl("http://evil.example"));
+		assertNull(Versions.safeUrl("https://a b"));
+	}
+
+	@Test
+	public void eventIdsAndTokenFile() throws Exception {
+		assertEquals("123", FlipStream.safeEventId("123"));
+		assertNull(FlipStream.safeEventId("bad id"));
+		assertNull(FlipStream.safeEventId("x\r\nInjected: 1"));
+		java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("ffcfg");
+		java.nio.file.Path f = dir.resolve("fatesflipper.json");
+		// 0.3.3 kept the token in the settings file: moved to its own file on load
+		java.nio.file.Files.writeString(f, "{\"serverUrl\":\"https://flips.example.com\",\"token\":\"fv_secret123\"}");
+		ModConfig c = ModConfig.load(f);
+		assertEquals("fv_secret123", c.token);
+		assertFalse(java.nio.file.Files.readString(f).contains("fv_secret123"));
+		assertTrue(java.nio.file.Files.readString(dir.resolve("fatesflipper-token.txt")).contains("fv_secret123"));
+		assertEquals("fv_secret123", ModConfig.load(f).token);
+		assertEquals("fv_secret123", c.copy().token);
+	}
+
+	@Test
+	public void privateHosts() {
+		for (String h : new String[] {"http://10.0.0.5:8738", "http://172.16.1.2:8738", "http://192.168.1.20:8738", "http://[fd7a:115c:a1e0::1]:8738"}) {
+			assertTrue(h, ServerAddress.check(h).ok());
+		}
+		assertFalse(ServerAddress.check("http://172.32.0.1:8738").ok());
+		assertFalse(ServerAddress.check("http://8.8.8.8").ok());
 	}
 }

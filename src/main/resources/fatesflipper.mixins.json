@@ -5,7 +5,8 @@
 	"client": [
 		"AbstractContainerScreenAccessor",
 		"AbstractContainerScreenMixin",
-		"GuiGraphicsExtractorMixin"
+		"GuiGraphicsExtractorMixin",
+		"SystemReportMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

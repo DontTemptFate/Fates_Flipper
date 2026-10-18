@@ -47,7 +47,7 @@ public final class ViewerApi {
 	/** Shares an existing client (must not follow redirects). */
 	public ViewerApi(Supplier<ModConfig> config, String modVersion, HttpClient http) {
 		this.config = config;
-		this.userAgent = "FatesFlipper/" + modVersion;
+		this.userAgent = "FatesFlipper/" + modVersion; // e.g. "FatesFlipper/0.3.4 (Minecraft 26.3)"
 		this.http = http;
 	}
 
@@ -180,19 +180,39 @@ public final class ViewerApi {
 		else b.header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8));
 		return http.sendAsync(b.build(), HttpResponse.BodyHandlers.ofInputStream())
 				.thenApply(r -> toResult(r.statusCode(), r.headers().firstValue("Retry-After").orElse(null), readLimited(r.body())))
+				.orTimeout(BODY_DEADLINE_MS + 15_000, java.util.concurrent.TimeUnit.MILLISECONDS)
 				.exceptionally(ex -> new Result(Status.ERROR, 0, null, "Can't reach the server (" + rootMessage(ex) + ").", 0));
 	}
 
 	/** Largest response body the mod reads (anything bigger is treated as broken). */
 	static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
 
+	/** Whole answer (headers and body) within this; the HTTP timeout alone only covers the headers. */
+	static final long BODY_DEADLINE_MS = 20_000;
+	private static final java.util.concurrent.ScheduledExecutorService CLOSER =
+			java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+				Thread t = new Thread(r, "fatesflipper-http-deadline");
+				t.setDaemon(true);
+				return t;
+			});
+
 	static String readLimited(java.io.InputStream in) {
+		// a body that trickles in forever is cut off (audit F-R5)
+		var deadline = CLOSER.schedule(() -> {
+			try {
+				in.close();
+			} catch (java.io.IOException ignored) {
+				// already closed
+			}
+		}, BODY_DEADLINE_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
 		try (in) {
 			byte[] data = in.readNBytes(MAX_BODY_BYTES + 1);
 			if (data.length > MAX_BODY_BYTES) return null;
 			return new String(data, StandardCharsets.UTF_8);
 		} catch (java.io.IOException e) {
 			return null;
+		} finally {
+			deadline.cancel(false);
 		}
 	}
 
@@ -206,6 +226,12 @@ public final class ViewerApi {
 			case 401 -> new Result(Status.UNAUTHORIZED, code, json, "Mod token missing or revoked: make a new one in the web page (account menu → Mod tokens), then /ff config.", 0);
 			case 403 -> new Result(Status.FORBIDDEN, code, json, forbiddenMessage(json, err), 0);
 			case 404 -> new Result(Status.NOT_FOUND, code, json, err != null ? err : "Not found.", 0);
+			case 426 -> {
+				String min = Json.str(json, "min_version");
+				String url = Versions.safeUrl(Json.str(json, "download_url"));
+				yield new Result(Status.ERROR, code, json, "This Fates Flipper is too old for the server"
+						+ (Versions.valid(min) ? ": " + min + " or newer is required" : "") + (url != null ? ". Get it at " + url : "") + ".", 0);
+			}
 			case 429 -> {
 				long ms = parseRetryAfter(retryAfter);
 				pauseFor(ms);

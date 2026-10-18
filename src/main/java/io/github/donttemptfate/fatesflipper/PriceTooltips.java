@@ -65,7 +65,7 @@ public final class PriceTooltips {
 			ItemStack stack = slot.getItem();
 			CompoundTag data = ItemBytes.skyblockData(stack);
 			if (data == null || !data.getStringOr("uuid", "").isEmpty()) continue;
-			if (LoreParts.isBazaarProduct(ItemBytes.plain(ItemBytes.lore(stack)))) bazaar.learn(data.getStringOr("id", ""));
+			if (LoreParts.isBazaarProduct(ItemBytes.facts(stack).plain())) bazaar.learn(data.getStringOr("id", ""));
 		}
 	}
 
@@ -76,7 +76,7 @@ public final class PriceTooltips {
 	static boolean isBazaar(ItemStack stack, CompoundTag data, String uuid) {
 		if (uuid != null) return false;
 		String id = data.getStringOr("id", "");
-		if (LoreParts.isBazaarProduct(ItemBytes.plain(ItemBytes.lore(stack)))) {
+		if (LoreParts.isBazaarProduct(ItemBytes.facts(stack).plain())) {
 			bazaar.learn(id);
 			return true;
 		}
@@ -145,7 +145,11 @@ public final class PriceTooltips {
 		return View.HIDDEN;
 	}
 
+	/** Set while the Fates tooltip collects other mods' lines: ours are already in the card. */
+	public static final ThreadLocal<Boolean> QUIET = ThreadLocal.withInitial(() -> false);
+
 	static void add(FlipService service, ItemStack stack, List<Component> lines) {
+		if (QUIET.get()) return;
 		View v = view(service, stack);
 		switch (v.kind()) {
 			case HIDDEN -> {

@@ -80,13 +80,17 @@ public final class AuctionWindow {
 	 * price never changes); otherwise the item's name.
 	 */
 	public static Boolean matches(double flipPrice, String flipName, long buttonPrice, String itemName) {
-		if (buttonPrice >= 0 && flipPrice > 0) {
-			return Math.abs(buttonPrice - flipPrice) <= Math.max(1.0, flipPrice * 0.001);
-		}
 		String a = normalize(flipName);
 		String b = normalize(itemName);
-		if (a.isEmpty() || b.isEmpty()) return null;
-		return a.contains(b) || b.contains(a);
+		Boolean byName = a.isEmpty() || b.isEmpty() ? null : (a.contains(b) || b.contains(a));
+		if (buttonPrice >= 0 && flipPrice > 0) {
+			boolean byPrice = Math.abs(buttonPrice - flipPrice) <= Math.max(1.0, flipPrice * 0.001);
+			// cheap items often share a price: when the item's name is readable it must match too
+			// (audit F-R3); price alone only while the item slot is still empty
+			if (!byPrice) return Boolean.FALSE;
+			return byName == null ? Boolean.TRUE : byName;
+		}
+		return byName;
 	}
 
 	/** Lower case, letters and digits only, single spaces: "✪✪ Heroic Hyperion ✪" → "heroic hyperion". */

@@ -55,6 +55,7 @@ public final class FatesFlipperClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			AuctionOverlay.trackMouse(client);
 			Keys.tick(client, service);
+			Location.tick(client, service);
 			Function<Screen, Screen> open = pendingScreen;
 			if (open != null) {
 				pendingScreen = null;

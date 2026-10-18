@@ -1,0 +1,168 @@
+name: Release
+
+# Push a tag like v0.3.4 (or v0.3.4-beta.1 for a beta) to publish a release:
+#   1. builds and tests both jars (26.2, 26.3); the tag must match `version` in gradle.properties
+#   2. GitHub Release with both jars, SHA256SUMS.txt and the changelog (commits since the last tag);
+#      betas are marked pre-release
+#   3. Modrinth upload, only when the repository has the secret MODRINTH_TOKEN and the variable
+#      MODRINTH_PROJECT_ID (Settings → Secrets and variables → Actions). Without them this step is
+#      skipped and the GitHub Release is the download.
+# Nothing here runs on normal pushes; build.yml keeps testing every push.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)publish, e.g. v0.3.4"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.mc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        mc: ["26.2", "26.3"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      - name: Tag matches the mod version
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION=$(grep -E '^version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ "${TAG#v}" != "$VERSION" ]; then
+            echo "::error::Tag $TAG doesn't match version=$VERSION in gradle.properties"
+            exit 1
+          fi
+
+      - name: Build and test
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build -Pmc=${{ matrix.mc }} --no-daemon
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: jar-${{ matrix.mc }}
+          path: build/libs/fatesflipper-*+mc${{ matrix.mc }}.jar
+          if-no-files-found: error
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      beta: ${{ steps.meta.outputs.beta }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums and changelog
+        id: meta
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          case "$TAG" in *-beta*|*-b.*) echo "beta=true" >> "$GITHUB_OUTPUT";; *) echo "beta=false" >> "$GITHUB_OUTPUT";; esac
+          (cd dist && sha256sum *.jar > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          PREV=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          {
+            echo "## Fates Flipper ${TAG#v}"
+            echo
+            echo "One jar per Minecraft version: \`+mc26.2\` or \`+mc26.3\`. Needs Fabric Loader 0.19.3+ and Fabric API."
+            echo "Check the download against \`SHA256SUMS.txt\`. Display only: the mod never clicks or buys for you."
+            echo
+            echo "### Changes"
+            if [ -n "$PREV" ]; then RANGE="$PREV..$TAG"; else RANGE="$TAG"; fi
+            git log --no-merges --format='- %s' "$RANGE" | grep -v -iE '^- (ci|chore|merge)' | head -60
+          } > NOTES.md
+          cat NOTES.md
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          FLAGS=""
+          if [ "${{ steps.meta.outputs.beta }}" = "true" ]; then FLAGS="--prerelease"; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.jar dist/SHA256SUMS.txt --clobber
+            gh release edit "$TAG" --notes-file NOTES.md $FLAGS
+          else
+            gh release create "$TAG" dist/*.jar dist/SHA256SUMS.txt --title "Fates Flipper ${TAG#v}" --notes-file NOTES.md $FLAGS --verify-tag
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-notes
+          path: NOTES.md
+
+  modrinth:
+    needs: github-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Modrinth set up?
+        id: check
+        env:
+          TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          PROJECT: ${{ vars.MODRINTH_PROJECT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$PROJECT" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No MODRINTH_TOKEN / MODRINTH_PROJECT_ID: skipping Modrinth (the GitHub Release is published)."
+          fi
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: steps.check.outputs.ok == 'true'
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Upload one version per Minecraft release
+        if: steps.check.outputs.ok == 'true'
+        env:
+          TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          PROJECT: ${{ vars.MODRINTH_PROJECT_ID }}
+          TAG: ${{ needs.github-release.outputs.tag }}
+          BETA: ${{ needs.github-release.outputs.beta }}
+        run: |
+          set -e
+          TYPE=release; [ "$BETA" = "true" ] && TYPE=beta
+          CHANGELOG=$(sed -n '/^### Changes/,$p' dist/NOTES.md 2>/dev/null || echo "")
+          for JAR in dist/fatesflipper-*.jar; do
+            MC=$(basename "$JAR" .jar | sed -E 's/.*\+mc//')
+            VER=$(basename "$JAR" .jar | sed -E 's/^fatesflipper-//')
+            # Fabric API on Modrinth: project P7dR8mSH
+            DATA=$(jq -n --arg name "Fates Flipper ${TAG#v} for $MC" --arg ver "$VER" --arg mc "$MC" \
+              --arg type "$TYPE" --arg project "$PROJECT" --arg log "$CHANGELOG" \
+              '{name:$name, version_number:$ver, changelog:$log, game_versions:[$mc], version_type:$type,
+                loaders:["fabric"], featured:false, project_id:$project, file_parts:["jar"],
+                dependencies:[{project_id:"P7dR8mSH", dependency_type:"required"}]}')
+            code=$(curl -sS -o resp.json -w '%{http_code}' -X POST https://api.modrinth.com/v2/version \
+              -H "Authorization: $TOKEN" -H "User-Agent: DontTemptFate/Fates_Flipper release" \
+              -F "data=$DATA" -F "jar=@$JAR;type=application/java-archive")
+            echo "$JAR → Modrinth $code"
+            if [ "$code" -ge 300 ]; then cat resp.json; exit 1; fi
+          done
