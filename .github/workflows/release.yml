@@ -6,8 +6,8 @@ name: Release
 #   - push a tag like v0.4.0 (or v0.4.0-beta.1).
 # Then:
 #   1. builds and tests both jars (26.2, 26.3); the tag must match `version` in gradle.properties
-#   2. GitHub Release with both jars, SHA256SUMS.txt and the changelog (commits since the last tag);
-#      betas are marked pre-release
+#   2. GitHub Release with both jars, SHA256SUMS.txt and the changelog (this version's section of
+#      CHANGELOG.md, else the commits since the last tag); betas are marked pre-release
 #   3. Modrinth upload, only when the repository has the secret MODRINTH_TOKEN and the variable
 #      MODRINTH_PROJECT_ID (Settings → Secrets and variables → Actions). Without them this step is
 #      skipped and the GitHub Release is the download.
@@ -96,8 +96,14 @@ jobs:
             echo "Check the download against \`SHA256SUMS.txt\`. Display only: the mod never clicks or buys for you."
             echo
             echo "### Changes"
-            if [ -n "$PREV" ]; then RANGE="$PREV..${GITHUB_SHA}"; else RANGE="${GITHUB_SHA}"; fi
-            git log --no-merges --format='- %s' "$RANGE" | grep -v -iE '^- (ci|chore|merge)' | head -60
+            # the hand-written section for this version in CHANGELOG.md; else the commits since the last tag
+            SECTION=$(awk -v v="${TAG#v}" '$0 == "## " v {on=1; next} /^## / && on {exit} on' CHANGELOG.md 2>/dev/null | sed '/./,$!d')
+            if [ -n "$SECTION" ]; then
+              echo "$SECTION"
+            else
+              if [ -n "$PREV" ]; then RANGE="$PREV..${GITHUB_SHA}"; else RANGE="${GITHUB_SHA}"; fi
+              git log --no-merges --format='- %s' "$RANGE" | grep -v -iE '^- (ci|chore|merge)' | head -60
+            fi
           } > NOTES.md
           cat NOTES.md
 
