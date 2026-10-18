@@ -22,12 +22,20 @@ base {
 
 repositories {
 	mavenCentral()
+	// Fates Common, the library shared with Fates OFA (https://github.com/DontTemptFate/Fates_Common)
+	maven {
+		url "https://raw.githubusercontent.com/DontTemptFate/Fates_Common/maven"
+		content { includeGroup "io.github.donttemptfate" }
+	}
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// bundled inside the jar; with Fates OFA also installed, Fabric Loader keeps the newer copy
+	implementation "io.github.donttemptfate:fatescommon:${project.fates_common_version}+mc${project.minecraft_version}"
+	include "io.github.donttemptfate:fatescommon:${project.fates_common_version}+mc${project.minecraft_version}"
 
 	testImplementation "junit:junit:4.13.2"
 	testImplementation "com.google.code.gson:gson:2.11.0"
@@ -49,12 +57,14 @@ processResources {
 	// at least the Fabric API this jar was built against: an older one gets a clear loader message
 	// instead of a crash (audit F-C2)
 	def fabricApiDep = ">=" + project.fabric_api_version.split("\\+")[0]
+	def commonDep = ">=" + project.fates_common_version
 	inputs.property "version", version
 	inputs.property "minecraftDep", minecraftDep
 	inputs.property "fabricApiDep", fabricApiDep
+	inputs.property "commonDep", commonDep
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version, "minecraft_dep": minecraftDep, "fabric_api_dep": fabricApiDep
+		expand "version": version, "minecraft_dep": minecraftDep, "fabric_api_dep": fabricApiDep, "common_dep": commonDep
 	}
 }
 

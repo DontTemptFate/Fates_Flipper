@@ -1,12 +1,15 @@
 package io.github.donttemptfate.fatesflipper.ui;
 
+import io.github.donttemptfate.fates.common.ui.Card;
+import io.github.donttemptfate.fates.common.ui.Ui;
+
 import io.github.donttemptfate.fatesflipper.PriceTooltips;
-import io.github.donttemptfate.fatesflipper.core.LegacyText;
-import io.github.donttemptfate.fatesflipper.core.LoreParts;
-import io.github.donttemptfate.fatesflipper.ui.Card.Rule;
-import io.github.donttemptfate.fatesflipper.ui.Card.Stats;
-import io.github.donttemptfate.fatesflipper.ui.Card.Text;
-import io.github.donttemptfate.fatesflipper.ui.Ui.Role;
+import io.github.donttemptfate.fates.common.text.LegacyText;
+import io.github.donttemptfate.fates.common.skyblock.LoreParts;
+import io.github.donttemptfate.fates.common.ui.Card.Rule;
+import io.github.donttemptfate.fates.common.ui.Card.Stats;
+import io.github.donttemptfate.fates.common.ui.Card.Text;
+import io.github.donttemptfate.fates.common.ui.Ui.Role;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;

@@ -3,8 +3,8 @@ package io.github.donttemptfate.fatesflipper;
 import com.google.gson.JsonObject;
 import io.github.donttemptfate.fatesflipper.core.AuctionIds;
 import io.github.donttemptfate.fatesflipper.core.BazaarIds;
-import io.github.donttemptfate.fatesflipper.core.LoreParts;
-import io.github.donttemptfate.fatesflipper.core.Coins;
+import io.github.donttemptfate.fates.common.skyblock.LoreParts;
+import io.github.donttemptfate.fates.common.text.Coins;
 import io.github.donttemptfate.fatesflipper.core.Json;
 import io.github.donttemptfate.fatesflipper.core.PriceCache;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -179,7 +179,7 @@ public final class PriceTooltips {
 
 	private static void addFound(JsonObject d, List<Component> lines) {
 		String conf = Json.str(d, "confidence");
-		if (conf != null) conf = io.github.donttemptfate.fatesflipper.core.LegacyText.strip(conf);
+		if (conf != null) conf = io.github.donttemptfate.fates.common.text.LegacyText.strip(conf);
 		boolean learning = Json.bool(d, "learning", false);
 		double market = Json.num(d, "market", Double.NaN);
 		double cautious = Json.num(d, "cautious", Double.NaN);
@@ -220,7 +220,7 @@ public final class PriceTooltips {
 
 		JsonObject dupe = Json.obj(d, "dupe");
 		String level = Json.str(dupe, "level");
-		if (level != null) level = io.github.donttemptfate.fatesflipper.core.LegacyText.strip(level);
+		if (level != null) level = io.github.donttemptfate.fates.common.text.LegacyText.strip(level);
 		if (level != null) lines.add(Component.literal("  ⚠ dupe check: " + level).withStyle(ChatFormatting.RED));
 
 		long last = Json.lng(d, "last_traded_at", 0);

@@ -1,9 +1,9 @@
 package io.github.donttemptfate.fatesflipper;
 
 import io.github.donttemptfate.fatesflipper.core.AuctionIds;
-import io.github.donttemptfate.fatesflipper.core.Coins;
+import io.github.donttemptfate.fates.common.text.Coins;
 import io.github.donttemptfate.fatesflipper.core.FlipEvent;
-import io.github.donttemptfate.fatesflipper.core.LegacyText;
+import io.github.donttemptfate.fates.common.text.LegacyText;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;

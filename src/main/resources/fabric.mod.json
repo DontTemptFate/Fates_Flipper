@@ -21,7 +21,8 @@
 		"fabricloader": ">=0.19.3",
 		"minecraft": "${minecraft_dep}",
 		"java": ">=25",
-		"fabric-api": "${fabric_api_dep}"
+		"fabric-api": "${fabric_api_dep}",
+		"fatescommon": "${common_dep}"
 	},
 	"suggests": {
 		"modmenu": "*"

@@ -1,8 +1,8 @@
 package io.github.donttemptfate.fatesflipper;
 
 import io.github.donttemptfate.fatesflipper.core.FlipStream;
-import io.github.donttemptfate.fatesflipper.ui.Card;
-import io.github.donttemptfate.fatesflipper.ui.Ui;
+import io.github.donttemptfate.fates.common.ui.Card;
+import io.github.donttemptfate.fates.common.ui.Ui;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
