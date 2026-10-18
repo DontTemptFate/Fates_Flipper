@@ -119,7 +119,8 @@ final class FakeViewer {
 						json(ex, 400, "{\"error\":\"bad item_bytes: " + e.getClass().getSimpleName() + "\"}");
 						return;
 					}
-					json(ex, 200, "{\"found\":true,\"by\":\"item_bytes\",\"confidence\":\"MEDIUM\",\"learning\":false,\"market\":77000000,\"cautious\":70000000,\"lowest_bin\":79000000,\"volume_per_day\":2.0,\"sales_used\":6,\"dupe\":null}");
+					json(ex, 200, "{\"found\":true,\"by\":\"item_bytes\",\"confidence\":\"MEDIUM\",\"learning\":false,\"market\":77000000,\"cautious\":70000000,\"lowest_bin\":79000000,\"volume_per_day\":2.0,\"sales_used\":6,\"dupe\":null,"
+							+ "\"created_at\":1609621440000,\"traits\":{\"colour\":{\"hex\":\"FF66B2\",\"label\":\"Fairy colour\",\"exotic\":true},\"edition\":142,\"year\":2024,\"evolved\":true}}");
 					return;
 				}
 				if (query.contains(NEVER_UUID.replace("-", ""))) {

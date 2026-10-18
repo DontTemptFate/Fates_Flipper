@@ -231,6 +231,21 @@ public final class Cards {
 			default -> {
 			}
 		}
+		traits(c, d);
+	}
+
+	/** Item traits and creation date (collector v0.9.20 via the viewer), display only. */
+	static void traits(Card c, JsonObject d) {
+		var lines = io.github.donttemptfate.fatesflipper.core.ItemTraits.lines(d, java.time.ZoneId.systemDefault());
+		if (lines.isEmpty()) return;
+		c.space(2).add(new Rule(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.card.traits"), Ui.GRAY, null));
+		for (var l : lines) {
+			List<Seg> segs = new ArrayList<>();
+			if (l.swatch() >= 0) segs.add(seg("■ ", Role.BODY_BOLD, l.swatch()));
+			segs.add(seg(l.text(), Role.SMALL, l.rgb()));
+			if (l.badge() != null) segs.add(seg("  " + up(l.badge()), Role.LABEL, Ui.accent()));
+			c.add(new Line(segs, List.of()));
+		}
 	}
 
 	static KeyValues valueRow(Seg value) {

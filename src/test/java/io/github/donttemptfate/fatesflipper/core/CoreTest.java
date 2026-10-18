@@ -493,4 +493,20 @@ public class CoreTest {
 		assertNull(bad.itemId());
 		assertNull(bad.category());
 	}
+
+	@Test
+	public void itemTraitLines() {
+		var lines = ItemTraits.lines(Json.parseObject("{\"created_at\":1609621440000,\"traits\":{"
+				+ "\"colour\":{\"hex\":\"ff66b2\",\"label\":\"Fairy colour\",\"exotic\":true},\"dye\":\"Aquamarine\","
+				+ "\"edition\":142,\"year\":2024,\"rod\":{\"hook\":\"Hotspot Hook\",\"line\":\"Speedy Line\"},"
+				+ "\"evolved\":true,\"maxed\":true,\"handles\":3}}"), java.time.ZoneOffset.UTC);
+		java.util.List<String> texts = lines.stream().map(ItemTraits.Line::text).toList();
+		assertEquals(java.util.List.of("#FF66B2 · Fairy colour", "Dyed: Aquamarine", "Edition #142 · 2024",
+				"Hotspot Hook · Speedy Line", "Evolved", "Maxed", "3 of 3 handles", "Made Jan 2021"), texts);
+		assertEquals(0xFF66B2, lines.get(0).swatch());
+		assertEquals("Exotic", lines.get(0).badge());
+		// bad values are dropped; nothing without traits
+		assertTrue(ItemTraits.lines(Json.parseObject("{\"created_at\":5,\"traits\":{\"colour\":{\"hex\":\"zzz\"},\"handles\":-1}}"), java.time.ZoneOffset.UTC).isEmpty());
+		assertTrue(ItemTraits.lines(null, java.time.ZoneOffset.UTC).isEmpty());
+	}
 }

@@ -4,6 +4,16 @@ Player-facing changes per release. The Release workflow copies the section for t
 released into the GitHub Release (and Modrinth); with no section it falls back to the commit list.
 Versions ending in `-beta.N` are pre-releases.
 
+## 0.4.0-beta.2
+
+- **Alert limits and quiet hours** from your flip profile are explained in chat (and on the status
+  card); each alert has a `[mute 1h]` button, plus `/ff mute hour|today|forever`,
+  `/ff mute category …` and `/ff unmute [all]`.
+- **Item details in tooltips:** exact leather colour with a colour square (and Exotic / Collector
+  colour), dye, edition and year, rod parts, evolved, maxed, ladder handles, and when the item was
+  made. Shown as the website sends them.
+- Profile chat settings come only from the website's mod service now.
+
 ## 0.4.0-beta.1
 
 First public test build.
@@ -20,9 +30,6 @@ First public test build.
   login never leaves Minecraft). See "What /ff verify sends" in the README.
 - **Safe mode:** a feature that keeps erroring switches itself off until you restart, and tells you
   once; `/ff safemode reset` turns it back on.
-- **Alert limits and quiet hours** from your flip profile are explained in chat (and on the status
-  card); each alert has a `[mute 1h]` button, plus `/ff mute hour|today|forever`,
-  `/ff mute category …` and `/ff unmute [all]`. Needs the website's next update.
 - Settings screen: Dungeons toggle; Theme button.
 - Under the hood: shared library with Fates OFA (Fates Common), all text ready for translation.
 
