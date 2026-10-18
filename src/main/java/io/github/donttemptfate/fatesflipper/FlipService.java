@@ -275,10 +275,10 @@ public final class FlipService implements FlipStream.Listener {
 		});
 	}
 
-	@Override
 	static final int SEEN_FLIPS = 200;
 	private final java.util.LinkedHashSet<String> seenFlips = new java.util.LinkedHashSet<>();
 
+	@Override
 	public void onFlip(JsonObject json) {
 		FlipEvent f = FlipEvent.parse(json);
 		if (f == null) return;
