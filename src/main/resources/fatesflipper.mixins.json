@@ -6,7 +6,9 @@
 		"AbstractContainerScreenAccessor",
 		"AbstractContainerScreenMixin",
 		"GuiGraphicsExtractorMixin",
-		"SystemReportMixin"
+		"SystemReportMixin",
+		"ChatHistoryMixin",
+		"CommandHistoryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

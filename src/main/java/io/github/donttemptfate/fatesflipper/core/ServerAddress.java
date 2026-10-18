@@ -80,6 +80,14 @@ public final class ServerAddress {
 		return n[0] == 100 && n[1] >= 64 && n[1] <= 127;
 	}
 
+	/** {@code /ff token …}: kept out of chat and command history (audit F-S2). */
+	public static boolean isTokenCommand(String s) {
+		if (s == null) return false;
+		String t = s.trim().toLowerCase(Locale.ROOT);
+		if (t.startsWith("/")) t = t.substring(1);
+		return t.startsWith("ff token ") || t.equals("ff token");
+	}
+
 	/** True when the token looks like a viewer mod token. */
 	public static boolean looksLikeToken(String token) {
 		return token != null && token.matches("^fv_[A-Za-z0-9_\\-]{8,200}$");

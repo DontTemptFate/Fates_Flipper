@@ -396,5 +396,8 @@ public class CoreTest {
 		}
 		assertFalse(ServerAddress.check("http://172.32.0.1:8738").ok());
 		assertFalse(ServerAddress.check("http://8.8.8.8").ok());
+		assertTrue(ServerAddress.isTokenCommand("/ff token fv_abc"));
+		assertTrue(ServerAddress.isTokenCommand("ff TOKEN fv_abc"));
+		assertFalse(ServerAddress.isTokenCommand("/ff status"));
 	}
 }
