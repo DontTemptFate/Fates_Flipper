@@ -109,6 +109,17 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			check(ctx.computeOnClient(mc -> chatText(mc).contains("DUPED?!")), "no DUPED?! on a duped alert");
 			ctx.takeScreenshot("01c_chat_options");
 
+			// 1c2. alert limits / mutes (viewer v0.31.0): the notice was printed; [mute 1h] and /ff mute
+			check(ctx.computeOnClient(mc -> chatText(mc, 40).contains("Alert limit reached")), "the limit notice wasn't printed");
+			check(ctx.computeOnClient(mc -> chatText(mc).contains("[mute 1h]")), "no [mute 1h] button on the alert");
+			ctx.runOnClient(mc -> run(mc, "ff mute hour " + FakeViewer.FLIP_ID));
+			ctx.waitFor(mc -> fake.lastMute.get() != null, 200);
+			String muteBody = fake.lastMute.get();
+			check(muteBody.startsWith("/mod/mute") && muteBody.contains("\"item_id\":\"HYPERION\"") && muteBody.contains("\"for\":\"hour\""), "mute request was " + muteBody);
+			ctx.runOnClient(mc -> run(mc, "ff unmute all"));
+			ctx.waitFor(mc -> fake.lastMute.get().startsWith("/mod/unmute"), 200);
+			check(fake.lastMute.get().contains("\"all\":true"), "unmute request was " + fake.lastMute.get());
+
 			// 1d. /ff verify: nothing runs until CONFIRM; with no real Minecraft login, Mojang refuses and
 			// nothing is posted to the viewer
 			ctx.runOnClient(mc -> run(mc, "ff verify"));
@@ -585,6 +596,10 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 
 	/** The newest chat lines as plain text (read by reflection: test only). */
 	static String chatText(net.minecraft.client.Minecraft mc) {
+		return chatText(mc, 8);
+	}
+
+	static String chatText(net.minecraft.client.Minecraft mc, int lines) {
 		try {
 			// the chat component sits on Gui or, in 26.x, on Gui.hud
 			Object chat = findChat(mc.gui);
@@ -600,7 +615,7 @@ public class FatesFlipperGameTest implements FabricClientGameTest {
 			all.setAccessible(true);
 			java.util.List<?> msgs = (java.util.List<?>) all.get(chat);
 			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < Math.min(8, msgs.size()); i++) {
+			for (int i = 0; i < Math.min(lines, msgs.size()); i++) {
 				Object m = msgs.get(i);
 				var content = (net.minecraft.network.chat.Component) m.getClass().getMethod("content").invoke(m);
 				sb.append(content.getString()).append('\n');

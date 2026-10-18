@@ -37,6 +37,15 @@ public final class Commands {
 					FatesFlipperClient.openScreenNextTick(parent -> new ConfigScreen(parent, s));
 					return 1;
 				}))
+				// mutes (viewer v0.31.0): the last alert's item or category, or a given alert (chat button)
+				.then(muteCommand(s))
+				.then(ClientCommands.literal("unmute").executes(c -> {
+					s.unmute(s.lastAlert(), false);
+					return 1;
+				}).then(ClientCommands.literal("all").executes(c -> {
+					s.unmute(null, true);
+					return 1;
+				})))
 				.then(ClientCommands.literal("safemode").executes(c -> {
 					var off = io.github.donttemptfate.fatesflipper.core.SafeMode.switchedOff();
 					if (off.isEmpty()) Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.safe.none"));
@@ -129,6 +138,29 @@ public final class Commands {
 		return 1;
 	}
 
+	/** /ff mute [category] <hour|today|forever> [auction id]. */
+	private static LiteralArgumentBuilder<FabricClientCommandSource> muteCommand(FlipService s) {
+		LiteralArgumentBuilder<FabricClientCommandSource> mute = ClientCommands.literal("mute").executes(c -> {
+			Chat.info(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mute.usage"));
+			return 1;
+		});
+		LiteralArgumentBuilder<FabricClientCommandSource> cat = ClientCommands.literal("category");
+		for (String span : new String[] {"hour", "today", "forever"}) {
+			mute.then(ClientCommands.literal(span).executes(c -> {
+				s.mute(s.lastAlert(), false, span);
+				return 1;
+			}).then(ClientCommands.argument("auction", StringArgumentType.word()).executes(c -> {
+				s.mute(s.recentFlip(StringArgumentType.getString(c, "auction")), false, span);
+				return 1;
+			})));
+			cat.then(ClientCommands.literal(span).executes(c -> {
+				s.mute(s.lastAlert(), true, span);
+				return 1;
+			}));
+		}
+		return mute.then(cat);
+	}
+
 	/** /ff theme: lists the themes; /ff theme <id> picks one (shared with Fates OFA). */
 	private static LiteralArgumentBuilder<FabricClientCommandSource> themeCommand(FlipService s) {
 		LiteralArgumentBuilder<FabricClientCommandSource> b = ClientCommands.literal("theme").executes(c -> {
@@ -166,6 +198,8 @@ public final class Commands {
 				{"/ff cursorassist on|off", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.13")},
 				{"/ff reconnect", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.14")},
 				{"/ff verify", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.verify")},
+				{"/ff mute [category] hour|today|forever", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.mute")},
+				{"/ff unmute [all]", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.unmute")},
 				{"/ff safemode [reset]", io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.cmd.help.safemode")},
 		};
 		for (String[] r : rows) {

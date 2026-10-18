@@ -72,9 +72,14 @@ public final class ViewerApi {
 		return get("/mod/profiles");
 	}
 
-	/** Full profile list incl. each profile's chat settings ({@code /api/profiles}). */
-	public CompletableFuture<Result> profileSettings() {
-		return get("/api/profiles");
+	/** Mute an item or category in the active profile (viewer v0.31.0): {@code {item_id|category, label, for}}. */
+	public CompletableFuture<Result> mute(JsonObject body) {
+		return post("/mod/mute", body);
+	}
+
+	/** Undo a mute: {@code {item_id|category|all: true}}. */
+	public CompletableFuture<Result> unmute(JsonObject body) {
+		return post("/mod/unmute", body);
 	}
 
 	/** {@code profile}: a name, an id, or "off". */

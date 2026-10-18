@@ -287,5 +287,17 @@
 	"fatesflipper.safe.f.closekey": "Close key",
 	"fatesflipper.safe.f.hover": "Flip hover card",
 	"fatesflipper.safe.f.hud": "Status card",
-	"fatesflipper.safe.f.bazaar": "Bazaar learning"
+	"fatesflipper.safe.f.bazaar": "Bazaar learning",
+	"fatesflipper.alert.mute_button": "[mute 1h]",
+	"fatesflipper.alert.mute_hover": "Mute %s in your active profile for an hour (the website lists your mutes).",
+	"fatesflipper.mute.usage": "/ff mute hour|today|forever mutes the last alert's item; /ff mute category hour|today|forever its category; /ff unmute [all].",
+	"fatesflipper.mute.none": "No recent flip alert to mute.",
+	"fatesflipper.mute.no_item": "That alert has no item id to mute (the website needs v0.31.0).",
+	"fatesflipper.mute.no_category": "That alert has no category to mute.",
+	"fatesflipper.mute.old_viewer": "This website can't mute from the game yet (it needs v0.31.0).",
+	"fatesflipper.mute.done": "Done.",
+	"fatesflipper.cmd.help.mute": "mute the last alert's item (or category) in your active profile",
+	"fatesflipper.cmd.help.unmute": "unmute the last alert's item, or everything",
+	"fatesflipper.hud.paused_quiet": "Alerts paused · quiet hours until %s",
+	"fatesflipper.hud.paused_limit": "Alerts paused · alert limit until %s"
 }

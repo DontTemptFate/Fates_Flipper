@@ -74,13 +74,22 @@ public final class StatusHud {
 		return switch (service.streamState()) {
 			case CONNECTED -> since < SHOW_CONNECTED_MS
 					? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.connected") + (service.profileName() != null ? " · " + service.profileName() : "")
-					: null;
+					: paused(service);
 			case CONNECTING -> since > 3_000 ? io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.connecting") : null;
 			case RETRYING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.retrying");
 			case STOPPED -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.stopped");
 			case WAITING -> io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.hud.waiting");
 			case OFF -> null;
 		};
+	}
+
+	/** "Alerts paused (quiet hours until 07:00)" while the viewer says so; null otherwise. */
+	static String paused(FlipService service) {
+		FlipService.Pause p = service.pause();
+		if (p == null) return null;
+		String until = p.untilMs() > 0 ? java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+				.format(java.time.Instant.ofEpochMilli(p.untilMs()).atZone(java.time.ZoneId.systemDefault())) : "?";
+		return io.github.donttemptfate.fatesflipper.core.Tr.tr("quiet".equals(p.kind()) ? "fatesflipper.hud.paused_quiet" : "fatesflipper.hud.paused_limit", until);
 	}
 
 	/** Why: the update message, or the connection's own reason while stopped / retrying. */

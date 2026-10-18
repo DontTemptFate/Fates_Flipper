@@ -20,6 +20,9 @@ First public test build.
   login never leaves Minecraft). See "What /ff verify sends" in the README.
 - **Safe mode:** a feature that keeps erroring switches itself off until you restart, and tells you
   once; `/ff safemode reset` turns it back on.
+- **Alert limits and quiet hours** from your flip profile are explained in chat (and on the status
+  card); each alert has a `[mute 1h]` button, plus `/ff mute hour|today|forever`,
+  `/ff mute category …` and `/ff unmute [all]`. Needs the website's next update.
 - Settings screen: Dungeons toggle; Theme button.
 - Under the hood: shared library with Fates OFA (Fates Common), all text ready for translation.
 

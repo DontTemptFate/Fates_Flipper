@@ -35,7 +35,10 @@ public record FlipEvent(
 		/** The seller's Minecraft name (card {@code seller_name}, checked), or null. */
 		String seller,
 		/** The item's lore as § text (card {@code lore}, at most 40 lines, cleaned), empty when not sent. */
-		java.util.List<String> lore) {
+		java.util.List<String> lore,
+		/** The card's {@code item_id} / {@code category} (for mutes), checked; or null. */
+		String itemId,
+		String category) {
 
 	static final java.util.regex.Pattern PLAYER = java.util.regex.Pattern.compile("^[A-Za-z0-9_]{1,16}$");
 
@@ -76,7 +79,15 @@ public record FlipEvent(
 				Json.str(profile, "name"),
 				clean(Json.str(est, "conf_reason")),
 				player(Json.str(card, "seller_name")),
-				lore(Json.arr(card, "lore")));
+				lore(Json.arr(card, "lore")),
+				key(Json.str(card, "item_id")),
+				key(Json.str(card, "category")));
+	}
+
+	static final java.util.regex.Pattern KEY = java.util.regex.Pattern.compile("^[A-Za-z0-9_:;.\\-]{1,64}$");
+
+	private static String key(String s) {
+		return s != null && KEY.matcher(s).matches() ? s : null;
 	}
 
 	private static String player(String s) {
