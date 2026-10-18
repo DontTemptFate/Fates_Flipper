@@ -13,6 +13,8 @@ Versions ending in `-beta.N` are pre-releases.
   colour), dye, edition and year, rod parts, evolved, maxed, ladder handles, and when the item was
   made. Shown as the website sends them.
 - Profile chat settings come only from the website's mod service now.
+- The `[SELLER]` button and lore on hover now fill in (the website sends the seller's name and the
+  item's lore since its 0.31.1 update).
 
 ## 0.4.0-beta.1
 
