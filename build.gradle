@@ -38,7 +38,7 @@ dependencies {
 	include "io.github.donttemptfate:fatescommon:${project.fates_common_version}+mc${project.minecraft_version}"
 
 	testImplementation "junit:junit:4.13.2"
-	testImplementation "com.google.code.gson:gson:2.11.0"
+	testImplementation "com.google.code.gson:gson:2.14.0"
 }
 
 fabricApi {
