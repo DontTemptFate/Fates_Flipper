@@ -31,6 +31,7 @@ final class FakeViewer {
 	final AtomicInteger apiProfilesCalls = new AtomicInteger();
 	final AtomicInteger whoamiChallenges = new AtomicInteger();
 	final AtomicInteger whoamiPosts = new AtomicInteger();
+	final java.util.concurrent.atomic.AtomicReference<String> lastMute = new java.util.concurrent.atomic.AtomicReference<>();
 	final java.util.concurrent.atomic.AtomicReference<String> lastEventIdHeader = new java.util.concurrent.atomic.AtomicReference<>();
 	private final HttpServer server;
 
@@ -63,7 +64,7 @@ final class FakeViewer {
 		return "{\"uuid\":\"" + id + "\",\"name\":\"" + name + "\",\"rarity\":\"LEGENDARY\",\"price\":" + price
 				+ ",\"profit\":" + (profit + profit / 2) + ",\"safe_profit\":" + profit + ",\"safe_pct\":0.08,\"safe_resale\":" + (price + profit * 2)
 				+ ",\"dupe\":null,\"first_seen_at\":" + (System.currentTimeMillis() - 4_000)
-				+ ",\"seller_name\":\"Test_Seller\",\"lore\":[\"§7Damage: §c+260\",\"§7Intelligence: §a+350\",\"§6§lLEGENDARY SWORD\"]"
+				+ ",\"item_id\":\"HYPERION\",\"category\":\"weapon\",\"seller_name\":\"Test_Seller\",\"lore\":[\"§7Damage: §c+260\",\"§7Intelligence: §a+350\",\"§6§lLEGENDARY SWORD\"]"
 				+ ",\"summary\":\"5★ · Wisdom V\",\"estimate\":{\"confidence\":\"HIGH\",\"resale\":" + (price + profit * 2)
 				+ ",\"volume_per_day\":14.2,\"exact\":{\"n_used\":23}}}";
 	}
@@ -86,6 +87,10 @@ final class FakeViewer {
 			case "/mod/ping" -> json(ex, 200, "{\"ok\":true,\"version\":\"0.19.0-test\",\"fp_version\":4,\"collector_ok\":true,\"latest_card_at\":0,\"live_feed\":true,\"profile\":{\"id\":1,\"name\":\"Test profile\"},"
 					+ "\"mod_min_version\":\"0.1.0\",\"mod_latest_version\":\"9.9.9\",\"mod_download_url\":\"https://example.com/fates-flipper\"}");
 			case "/mod/profiles" -> json(ex, 200, "{\"active\":1,\"profiles\":[{\"id\":1,\"name\":\"Test profile\",\"color\":\"#ffaa00\",\"chat\":{\"sound\":true,\"countdown\":true,\"seller_button\":true,\"lore_on_hover\":true,\"just_profit\":false}}]}");
+			case "/mod/mute", "/mod/unmute" -> {
+				lastMute.set(path + " " + new String(ex.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+				json(ex, 200, "{\"ok\":true,\"text\":\"§8[§dFates§8] §7Muted Heroic Hyperion for an hour.\",\"mutes\":[]}");
+			}
 			case "/mod/whoami/challenge" -> {
 				whoamiChallenges.incrementAndGet();
 				json(ex, 200, "{\"server_id\":\"0123456789abcdef0123456789abcdef01234567\",\"expires_in_s\":120}");
@@ -152,6 +157,8 @@ final class FakeViewer {
 			Thread.sleep(300);
 			// a flip whose command isn't /viewauction <id>: the mod must ignore it
 			write(out, "id: 42\nevent: flip\ndata: " + flip(EVIL_ID, "Evil Item", 1_000_000L, 500_000L, "/pay attacker 1000000") + "\n\n");
+			// alert limit reached (viewer v0.31.0): printed as given, no id line
+			write(out, "event: notice\ndata: {\"kind\":\"limit\",\"text\":\"§8[§dFates§8] §7Alert limit reached (20 an hour): the next in 4 min. Your keys still work.\",\"until\":" + (System.currentTimeMillis() + 240_000) + "}\n\n");
 			for (int i = 0; i < 90; i++) {
 				Thread.sleep(2_000);
 				write(out, ": keep-alive\n\n");

@@ -41,6 +41,7 @@ your own two clicks.
 | Item tooltips | SkyBlock items get a cleaner tooltip: stats, enchants, the auction listing (seller, price, time left), lines other mods add (under **MODS**) and the Fates price block (value, safe value, confidence, lowest BIN, sales per day, dupe flag). Bazaar items say so. Long tooltips scroll with the mouse wheel. |
 | Themes | Four colour themes (Fates, Midnight, Ember, Vanilla) and the Chakra Petch font, picked in settings or with `/ff theme` / `/ff font`. Both are shared with Fates OFA: change them in either mod and both follow (saved in `config/fatescommon.json`). |
 | Profile chat settings | Your active flip profile's chat options on the website are followed: alert sound, **countdown** (how long ago the auction was listed, after the line), **seller button** (`[SELLER]` puts `/ah <seller>` in your chat box; you press Enter), **lore on hover** (the item's lore under the hover card) and **just profit** (a short line: item and profit). Seller and lore need a website version that sends them. |
+| Alert limits and quiet hours | Set on your flip profile on the website. When alerts pause, one chat line says why and until when (the status card shows it too); your keys still open flips and say so. |
 | Duped items | Items the website flags get a bold red **DUPED?!** on the chat line, hover card, auction panel and item tooltip. |
 | Safe mode | A feature that keeps erroring (5 times in a minute) switches itself off until you restart, with one chat line saying so; everything else keeps working. `/ff safemode` lists them, `/ff safemode reset` turns them back on. |
 | Status display | Top-left card when connecting, offline, stopped (with the reason) or when an update is required. |
@@ -65,6 +66,7 @@ your own two clicks.
 | `/ff font chakra\|vanilla` | Chakra Petch or Minecraft's font (shared with Fates OFA) |
 | `/ff theme [name]` | colour theme: `fates`, `midnight`, `ember`, `vanilla` (shared with Fates OFA) |
 | `/ff cursorassist on\|off` | opt-in, off by default; turning it on asks you to confirm |
+| `/ff mute [category] hour\|today\|forever` · `/ff unmute [all]` | mute the last alert's item (or its category) in your active profile; each alert also has a `[mute 1h]` button |
 | `/ff verify` | link this Minecraft account to your website account for My flips (opt-in; asks you to type CONFIRM; see below) |
 | `/ff safemode [reset]` | features switched off after repeated errors / turn them back on |
 | `/ff reconnect` | connect again now |

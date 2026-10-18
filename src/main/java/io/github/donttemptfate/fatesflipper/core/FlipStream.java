@@ -38,6 +38,9 @@ public final class FlipStream {
 
 		void onProfile(JsonObject profile);
 
+		/** Alert limits / quiet hours (viewer v0.31.0): {@code {kind, text, until?, count?, best_profit?}}. */
+		default void onNotice(JsonObject notice) {}
+
 		/** The server refused this mod version (HTTP 426): {@code min} or {@code url} may be null. */
 		default void onOutdated(String min, String url) {}
 	}
@@ -304,6 +307,7 @@ public final class FlipStream {
 			switch (ev.event()) {
 				case "flip" -> listener.onFlip(json);
 				case "profile" -> listener.onProfile(json);
+				case "notice" -> listener.onNotice(json);
 				default -> {
 					// unknown events are ignored
 				}

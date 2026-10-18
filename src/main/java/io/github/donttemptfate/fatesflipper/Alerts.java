@@ -42,6 +42,14 @@ public final class Alerts {
 					.withClickEvent(new ClickEvent.SuggestCommand("/ah " + f.seller()))
 					.withHoverEvent(new HoverEvent.ShowText(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.seller_hover", f.seller()))))));
 		}
+		if (f.itemId() != null) {
+			// one click = one mute request for this alert's item (viewer v0.31.0)
+			full.append(Component.literal(" "));
+			full.append(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.mute_button")).withStyle(style -> style
+					.withColor(ChatFormatting.DARK_GRAY)
+					.withClickEvent(new ClickEvent.RunCommand("/ff mute hour " + f.auctionId()))
+					.withHoverEvent(new HoverEvent.ShowText(Component.literal(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.alert.mute_hover", LegacyText.strip(f.name())))))));
+		}
 		Chat.send(full);
 		if (service.alertSound()) {
 			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 1.6f));

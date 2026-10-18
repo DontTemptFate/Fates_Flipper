@@ -473,6 +473,7 @@ public class CoreTest {
 		FlipEvent f = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"name\":\"Hyperion\",\"price\":1000000,\"safe_profit\":250000,"
 				+ "\"dupe\":\"duped\",\"seller_name\":\"Some_Seller\",\"lore\":[\"§7Damage: §c+260\",\"§6§lLEGENDARY SWORD\"]}}"));
 		assertEquals("Some_Seller", f.seller());
+		assertNull(f.itemId()); // not in this card
 		assertEquals(2, f.lore().size());
 		assertTrue(f.profitChat().contains("+250k"));
 		assertTrue(f.profitChat().contains("§c§lDUPED?!"));
@@ -480,5 +481,16 @@ public class CoreTest {
 		FlipEvent bad = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"seller_name\":\"/pay x 1\"}}"));
 		assertNull(bad.seller());
 		assertTrue(bad.lore().isEmpty());
+	}
+
+	@Test
+	public void muteKeysAreChecked() {
+		String id = "0123456789abcdef0123456789abcdef";
+		FlipEvent f = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"item_id\":\"PET;LEGENDARY\",\"category\":\"weapon\"}}"));
+		assertEquals("PET;LEGENDARY", f.itemId());
+		assertEquals("weapon", f.category());
+		FlipEvent bad = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"item_id\":\"x\\\"} {\",\"category\":\"a b\"}}"));
+		assertNull(bad.itemId());
+		assertNull(bad.category());
 	}
 }

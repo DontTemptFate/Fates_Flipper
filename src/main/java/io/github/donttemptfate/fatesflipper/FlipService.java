@@ -266,8 +266,15 @@ public final class FlipService implements FlipStream.Listener {
 	}
 
 	public synchronized FlipEvent recentFlip(String auctionId) {
-		for (FlipEvent f : recent) if (f.auctionId().equals(auctionId)) return f;
+		String id = AuctionIds.normalize(auctionId);
+		if (id == null) return null;
+		for (FlipEvent f : recent) if (f.auctionId().equals(id)) return f;
 		return null;
+	}
+
+	/** The newest flip alert shown, or null. */
+	public synchronized FlipEvent lastAlert() {
+		return recent.peekFirst();
 	}
 
 	// ---- stream callbacks (stream thread) --------------------------------------------------
@@ -308,6 +315,7 @@ public final class FlipService implements FlipStream.Listener {
 				it.next();
 				it.remove();
 			}
+			pause = null; // a flip arrived, so alerts aren't paused any more
 			recent.addFirst(f);
 			while (recent.size() > 30) recent.removeLast();
 		}
@@ -327,36 +335,81 @@ public final class FlipService implements FlipStream.Listener {
 	}
 
 	/**
-	 * Reads the active profile's chat settings (sound etc.): from {@code /mod/profiles} when the viewer
-	 * sends them there (handoff-mod-to-viewer-mod-service-2026-10-18), else from {@code /api/profiles}.
+	 * Reads the active profile's chat settings from {@code /mod/profiles} (viewer v0.30.0; the old
+	 * {@code /api/profiles} fallback was dropped once Deploy confirmed v0.30.0 on the server).
 	 */
 	public void refreshChatSettings() {
 		api.profiles().thenAccept(r -> {
-			JsonObject fromMod = r.ok() ? activeChat(r.json()) : null;
-			if (fromMod != null) {
-				chatSettings = fromMod;
-				return;
-			}
-			api.profileSettings().thenAccept(r2 -> {
-				if (!r2.ok()) return;
-				JsonObject json = r2.json();
-				JsonElement active = json.get("active");
-				JsonArray list = Json.arr(json, "profiles");
-				if (active == null || active.isJsonNull() || list == null) {
-					chatSettings = null;
-					return;
-				}
-				for (JsonElement e : list) {
-					if (!e.isJsonObject()) continue;
-					JsonObject p = e.getAsJsonObject();
-					JsonElement id = p.get("id");
-					if (id != null && id.equals(active)) {
-						chatSettings = Json.obj(Json.obj(p, "settings"), "chat");
-						return;
-					}
-				}
-			});
+			if (r.ok()) chatSettings = activeChat(r.json());
 		});
+	}
+
+	// ---- alert limits and quiet hours (viewer v0.31.0, handoff-viewer-to-mod-alert-budgets) ----
+
+	/** Why alerts are paused ("quiet" / "limit") and until when (UTC ms, 0 = unknown); null = not paused. */
+	public record Pause(String kind, long untilMs) {}
+
+	private volatile Pause pause;
+
+	public Pause pause() {
+		Pause p = pause;
+		if (p != null && p.untilMs() > 0 && System.currentTimeMillis() > p.untilMs()) pause = p = null;
+		return p;
+	}
+
+	@Override
+	public void onNotice(JsonObject json) {
+		String kind = Json.str(json, "kind");
+		String text = Json.str(json, "text");
+		if ("quiet".equals(kind) || "limit".equals(kind)) pause = new Pause(kind, Json.lng(json, "until", 0));
+		else if ("summary".equals(kind)) pause = null;
+		if (text == null || text.isBlank() || !config.alerts) return;
+		mc.execute(() -> Chat.send(Chat.fromLegacy(text)));
+	}
+
+	/**
+	 * {@code /ff mute}: mutes the item (or its category) of a recent alert in the active profile, for
+	 * {@code hour} / {@code today} / {@code forever}. One command = one request to the viewer.
+	 */
+	public void mute(FlipEvent f, boolean category, String forWhat) {
+		if (f == null) {
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mute.none"));
+			return;
+		}
+		String key = category ? f.category() : f.itemId();
+		if (key == null) {
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr(category ? "fatesflipper.mute.no_category" : "fatesflipper.mute.no_item"));
+			return;
+		}
+		JsonObject body = new JsonObject();
+		body.addProperty(category ? "category" : "item_id", key);
+		body.addProperty("label", category ? key : io.github.donttemptfate.fatescommon.text.LegacyText.strip(f.name()));
+		body.addProperty("for", forWhat);
+		api.mute(body).thenAccept(r -> mc.execute(() -> report(r)));
+	}
+
+	/** {@code /ff unmute}: the last alert's item, or everything with {@code all}. */
+	public void unmute(FlipEvent f, boolean all) {
+		JsonObject body = new JsonObject();
+		if (all) body.addProperty("all", true);
+		else if (f != null && f.itemId() != null) body.addProperty("item_id", f.itemId());
+		else {
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mute.none"));
+			return;
+		}
+		api.unmute(body).thenAccept(r -> mc.execute(() -> report(r)));
+	}
+
+	private static void report(ViewerApi.Result r) {
+		if (r.httpCode() == 404 || r.httpCode() == 405) {
+			Chat.warn(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mute.old_viewer"));
+		} else if (!r.ok()) {
+			Chat.error(r.message());
+		} else {
+			String text = Json.str(r.json(), "text");
+			if (text != null && !text.isBlank()) Chat.send(Chat.fromLegacy(text));
+			else Chat.ok(io.github.donttemptfate.fatesflipper.core.Tr.tr("fatesflipper.mute.done"));
+		}
 	}
 
 	/** {@code active_chat}, or {@code chat} on the active profile's entry, from {@code /mod/profiles}; null if absent. */
@@ -514,6 +567,12 @@ public final class FlipService implements FlipStream.Listener {
 				return java.util.concurrent.CompletableFuture.completedFuture(null);
 			}
 			FlipEvent f = FlipEvent.parse(Json.obj(r.json(), "flip"));
+			// quiet hours / alert limit: the key still works, and says so (viewer v0.31.0)
+			String notice = Json.str(r.json(), "notice");
+			if (notice != null && !notice.isBlank()) {
+				String plain = io.github.donttemptfate.fatescommon.text.LegacyText.strip(notice);
+				mc.execute(() -> Chat.info(plain));
+			}
 			if (f == null || !f.commandMatches()) {
 				String msg = noFlipMessage(mode, r.json());
 				mc.execute(() -> Chat.info(msg));
