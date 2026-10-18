@@ -99,7 +99,10 @@ public record FlipEvent(
 		java.util.List<String> out = new java.util.ArrayList<>();
 		for (com.google.gson.JsonElement e : a) {
 			if (out.size() >= 40) break;
-			if (e.isJsonPrimitive()) out.add(LegacyText.sanitize(e.getAsString()));
+			if (e.isJsonPrimitive()) {
+				String l = LegacyText.sanitize(e.getAsString());
+				out.add(l.length() > 200 ? l.substring(0, 200) : l); // viewer promises ≤ 200; the server is untrusted
+			}
 		}
 		return java.util.List.copyOf(out);
 	}

@@ -481,6 +481,8 @@ public class CoreTest {
 		FlipEvent bad = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"seller_name\":\"/pay x 1\"}}"));
 		assertNull(bad.seller());
 		assertTrue(bad.lore().isEmpty());
+		FlipEvent longLore = FlipEvent.parse(Json.parseObject("{\"card\":{\"uuid\":\"" + id + "\",\"lore\":[\"" + "x".repeat(500) + "\"]}}"));
+		assertEquals(200, longLore.lore().get(0).length());
 	}
 
 	@Test
